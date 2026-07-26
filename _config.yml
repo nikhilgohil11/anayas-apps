@@ -1,0 +1,20 @@
+title: Solfège Melody
+description: A kids music-learning game — press glowing solfège pads (Do–Ti) to play nursery songs.
+tagline: Learn by playing
+author: nikhilgohil11
+theme: jekyll-theme-cayman
+show_downloads: false
+
+url: "https://nikhilgohil11.github.io"
+baseurl: "/anayas-apps"
+
+# Keep the HTML5 game and its assets as static files
+include:
+  - play
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - README.md
