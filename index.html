@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Solfège Melody</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <section id="screen-menu" class="screen screen--active" aria-label="Song selection">
+        <header class="brand">
+          <p class="brand__eyebrow">Learn by playing</p>
+          <h1 class="brand__title">Solfège Melody</h1>
+          <p class="brand__tagline">Press the glowing pad to play each note.</p>
+        </header>
+        <div id="song-list" class="song-list" role="list"></div>
+      </section>
+
+      <section id="screen-play" class="screen" aria-label="Gameplay" hidden>
+        <header class="play-header">
+          <button type="button" id="btn-back" class="btn btn--ghost">Back</button>
+          <div class="play-meta">
+            <h2 id="song-title" class="play-title">Song</h2>
+            <p id="progress" class="progress" aria-live="polite">Note 0 / 0</p>
+          </div>
+        </header>
+        <p class="hint">Press the lit pad</p>
+        <div id="pad-row" class="pad-row" role="group" aria-label="Solfège pads"></div>
+      </section>
+
+      <section id="screen-complete" class="screen" aria-label="Song complete" hidden>
+        <div class="complete">
+          <h2 class="complete__title">Great job!</h2>
+          <p id="complete-message" class="complete__message">You played the whole song.</p>
+          <div class="complete__actions">
+            <button type="button" id="btn-replay" class="btn btn--primary">Play again</button>
+            <button type="button" id="btn-menu" class="btn btn--ghost">Choose song</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
