@@ -1,9 +1,12 @@
-# Solfège Melody
+# Anaya
 
-A tiny HTML5 music-learning game for kids. Pick a nursery song, press the glowing solfège pad (Do–Ti), and play the melody one note at a time.
+A small browser playground in the style of a game portal. The homepage is a tile grid: tap a cover and the game opens immediately. Solfège Melody is the featured game.
 
-**Live site:** [https://nikhilgohil11.github.io/anayas-apps/](https://nikhilgohil11.github.io/anayas-apps/)  
-**Play directly:** [https://nikhilgohil11.github.io/anayas-apps/play/](https://nikhilgohil11.github.io/anayas-apps/play/)
+**Live site:** [https://nikhilgohil11.github.io/anayas-apps/](https://nikhilgohil11.github.io/anayas-apps/)
+
+## Solfège Melody
+
+A music-learning game for kids. Pick a nursery song, press the glowing solfège pad (Do–Ti), and play the melody one note at a time.
 
 ## Songs
 
@@ -30,14 +33,14 @@ Good for ages ~6–7:
 
 Timing is forgiving: the game waits for the correct press.
 
-## Run locally (game only)
+## Run locally
 
 ```bash
 # from this folder
 python3 -m http.server 8080
 ```
 
-Then open [http://localhost:8080/play/](http://localhost:8080/play/).
+Then open [http://localhost:8080/](http://localhost:8080/).
 
 ## Run locally (Jekyll + Cayman theme)
 
@@ -48,9 +51,7 @@ bundle install
 bundle exec jekyll serve
 ```
 
-Then open [http://127.0.0.1:4000/anayas-apps/](http://127.0.0.1:4000/anayas-apps/).
-
-To try only the game (no theme), serve the folder and open `/play/` as above.
+Then open [http://127.0.0.1:4000/anayas-apps/](http://127.0.0.1:4000/anayas-apps/). The homepage is a static file, so the Cayman theme does not wrap it.
 ## Publish on GitHub Pages
 
 1. Push this repo to GitHub (`main` branch).
@@ -63,11 +64,29 @@ Site URL: `https://nikhilgohil11.github.io/anayas-apps/`
 
 If the repo is renamed, update `baseurl` in `_config.yml` to match.
 
+## Cloudflare Pages
+
+The live portal is static HTML with relative links, so Pages should serve it from the domain root. `scripts/pages-build.sh` copies the site into `dist/` (Jekyll’s `baseurl` is only for GitHub Pages).
+
+In the Pages project:
+
+- Build command: `bash scripts/pages-build.sh`
+- Build output directory: `dist` (`wrangler.toml` sets this too)
+
+Or deploy the current folder directly:
+
+```bash
+bash scripts/pages-build.sh
+npx wrangler pages deploy dist --project-name anayas-apps
+```
+
 ## Project layout
 
-- `index.md` — Cayman-themed landing page
+- `index.html` — game portal (tile grid, search, categories, play view)
+- `assets/` — portal styles, catalog, and scripts. Add a game by appending to `assets/catalog.js`
 - `_config.yml` — Jekyll / GitHub Pages config
-- `play/` — the HTML5 game
+- `games/` — the other instant-play games
+- `play/` — Solfège Melody
   - `index.html` — menu, gameplay, and complete screens
   - `css/styles.css` — layout and pad styles
   - `js/` — audio, songs, game logic, and navigation

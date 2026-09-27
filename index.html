@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Anaya — Free online games</title>
+    <meta name="description" content="Free games you can play instantly in the browser. Tap a tile and play on your phone, tablet, or computer." />
+    <meta name="theme-color" content="#83ffe7" />
+    <link rel="icon" href="assets/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/portal.css" />
+  </head>
+  <body>
+    <div id="home" class="page">
+      <div id="finder" class="finder" hidden>
+        <input id="search" type="search" placeholder="Search games" autocomplete="off" aria-label="Search games" />
+        <div id="chips" class="chips"></div>
+      </div>
+      <div id="filterbar" class="filterbar" hidden></div>
+      <div id="board" class="board" aria-label="Games"></div>
+      <p id="empty" class="empty" hidden>No games match that. Try another word.</p>
+      <footer class="foot">
+        <p>Free games in your browser. Tap a picture and play — nothing to install.</p>
+        <nav id="foot-cats" class="foot__nav" aria-label="Categories"></nav>
+      </footer>
+    </div>
+
+    <div id="player" class="player" hidden>
+      <div class="player-bar">
+        <div id="player-brand"></div>
+        <div id="rail" class="rail" aria-label="More games"></div>
+      </div>
+      <div id="stage" class="stage">
+        <iframe id="frame" title="Game"></iframe>
+      </div>
+    </div>
+
+    <script src="assets/catalog.js"></script>
+    <script src="assets/portal.js"></script>
+  </body>
+</html>

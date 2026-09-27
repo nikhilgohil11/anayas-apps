@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Piano</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #1c140f;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        gap: 10px;
+        user-select: none;
+      }
+      p { margin: 0; text-align: center; font-weight: 700; opacity: 0.8; }
+      .keys {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 8px;
+        min-height: 0;
+      }
+      .key {
+        border: 0;
+        border-radius: 16px 16px 12px 12px;
+        color: #fff;
+        font: inherit;
+        font-weight: 800;
+        font-size: clamp(0.85rem, 2.4vw, 1.2rem);
+        cursor: pointer;
+        box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
+      }
+      .key.is-down { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25); }
+      .hint { font-size: 0.75rem; opacity: 0.8; display: block; margin-top: 4px; }
+    </style>
+  </head>
+  <body>
+    <p>Tap a key, or use the letters on your keyboard.</p>
+    <div class="keys" id="keys"></div>
+    <script>
+      const notes = [
+        ["Do", 261.63, "KeyA", "#e85d4c"],
+        ["Re", 293.66, "KeyS", "#f0a202"],
+        ["Mi", 329.63, "KeyD", "#e0b000"],
+        ["Fa", 349.23, "KeyF", "#6ab04c"],
+        ["Sol", 392.0, "KeyG", "#1aa6a6"],
+        ["La", 440.0, "KeyH", "#3d4ed8"],
+        ["Ti", 493.88, "KeyJ", "#b83fce"],
+        ["Do", 523.25, "KeyK", "#e85d4c"],
+      ];
+      const keys = document.getElementById("keys");
+      const buttons = new Map();
+      let audio;
+
+      for (const [name, freq, code, color] of notes) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "key";
+        button.style.background = color;
+        button.innerHTML = `${name}<span class="hint">${code.replace("Key", "")}</span>`;
+        const start = (event) => {
+          event.preventDefault();
+          button.classList.add("is-down");
+          play(freq);
+        };
+        button.addEventListener("pointerdown", start);
+        button.addEventListener("pointerup", () => button.classList.remove("is-down"));
+        button.addEventListener("pointerleave", () => button.classList.remove("is-down"));
+        keys.appendChild(button);
+        buttons.set(code, { button, freq });
+      }
+
+      window.addEventListener("keydown", (event) => {
+        const key = buttons.get(event.code);
+        if (!key || event.repeat) return;
+        event.preventDefault();
+        key.button.classList.add("is-down");
+        play(key.freq);
+      });
+      window.addEventListener("keyup", (event) => {
+        buttons.get(event.code)?.button.classList.remove("is-down");
+      });
+
+      function play(freq) {
+        if (!audio) audio = new AudioContext();
+        if (audio.state === "suspended") audio.resume();
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.type = "triangle";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, audio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.18, audio.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.7);
+        osc.connect(gain);
+        gain.connect(audio.destination);
+        osc.start();
+        osc.stop(audio.currentTime + 0.72);
+      }
+    </script>
+  </body>
+</html>

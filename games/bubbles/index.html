@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bubbles</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        color: #fff;
+        background: linear-gradient(#8ee7ff, #2f6bff 70%);
+        overflow: hidden;
+        user-select: none;
+      }
+      .hud {
+        position: absolute;
+        top: 12px;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        justify-content: space-between;
+        font-weight: 800;
+        font-size: 1.3rem;
+        text-shadow: 0 2px 0 rgba(0, 40, 80, 0.25);
+        z-index: 2;
+        pointer-events: none;
+      }
+      #field { position: absolute; inset: 0; }
+      .bubble {
+        position: absolute;
+        border: 0;
+        border-radius: 50%;
+        padding: 0;
+        cursor: pointer;
+        background:
+          radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.95), transparent 28%),
+          radial-gradient(circle at 50% 60%, var(--c), rgba(255, 255, 255, 0.2));
+        box-shadow: inset 0 -8px 16px rgba(0, 40, 80, 0.15);
+        animation: rise linear forwards;
+      }
+      .bubble.pop { animation: pop 0.18s ease forwards; }
+      @keyframes rise {
+        from { transform: translateY(0) scale(1); }
+        to { transform: translateY(-115vh) scale(1.05); }
+      }
+      @keyframes pop {
+        to { transform: scale(1.4); opacity: 0; }
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(10, 40, 80, 0.28);
+        z-index: 3;
+      }
+      .overlay[hidden] { display: none; }
+      .card {
+        background: #fff;
+        color: #1d4e89;
+        border-radius: 24px;
+        padding: 28px 32px;
+        text-align: center;
+        box-shadow: 0 16px 40px rgba(0, 30, 60, 0.2);
+      }
+      h1 { margin: 0 0 8px; font-size: 2rem; }
+      p { margin: 0 0 16px; font-weight: 700; }
+      button.play {
+        border: 0;
+        background: #2f6bff;
+        color: #fff;
+        font: inherit;
+        font-weight: 800;
+        font-size: 1.2rem;
+        border-radius: 999px;
+        padding: 12px 22px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud"><span id="score">0</span><span id="time">0:30</span></div>
+    <div id="field"></div>
+    <div id="overlay" class="overlay">
+      <div class="card">
+        <h1>Bubbles</h1>
+        <p id="blurb">Pop as many as you can in 30 seconds.</p>
+        <button class="play" id="play" type="button">Play</button>
+      </div>
+    </div>
+    <script>
+      const field = document.getElementById("field");
+      const scoreEl = document.getElementById("score");
+      const timeEl = document.getElementById("time");
+      const overlay = document.getElementById("overlay");
+      const blurb = document.getElementById("blurb");
+      const playBtn = document.getElementById("play");
+      const colors = ["#7af0c4", "#ffe56a", "#ff8fab", "#b8c0ff", "#9bf6ff"];
+      let score = 0;
+      let left = 30;
+      let spawnTimer = 0;
+      let clockTimer = 0;
+      let best = Number(localStorage.getItem("anaya-bubbles") || 0);
+
+      playBtn.addEventListener("click", start);
+
+      function start() {
+        score = 0;
+        left = 30;
+        scoreEl.textContent = "0";
+        timeEl.textContent = "0:30";
+        field.replaceChildren();
+        overlay.hidden = true;
+        clearInterval(spawnTimer);
+        clearInterval(clockTimer);
+        spawnTimer = setInterval(spawn, 420);
+        clockTimer = setInterval(tick, 1000);
+        spawn();
+      }
+
+      function tick() {
+        left -= 1;
+        timeEl.textContent = `0:${String(Math.max(left, 0)).padStart(2, "0")}`;
+        if (left <= 0) finish();
+      }
+
+      function finish() {
+        clearInterval(spawnTimer);
+        clearInterval(clockTimer);
+        best = Math.max(best, score);
+        localStorage.setItem("anaya-bubbles", String(best));
+        blurb.textContent = `You popped ${score}. Best is ${best}.`;
+        playBtn.textContent = "Play again";
+        overlay.hidden = false;
+      }
+
+      function spawn() {
+        const bubble = document.createElement("button");
+        bubble.type = "button";
+        bubble.className = "bubble";
+        bubble.setAttribute("aria-label", "Pop bubble");
+        const size = 54 + Math.random() * 74;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${Math.random() * Math.max(field.clientWidth - size, 0)}px`;
+        bubble.style.top = `${field.clientHeight - 8}px`;
+        bubble.style.setProperty("--c", colors[Math.floor(Math.random() * colors.length)]);
+        bubble.style.animationDuration = `${4.2 + Math.random() * 3.2}s`;
+        bubble.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (bubble.classList.contains("pop")) return;
+          bubble.classList.add("pop");
+          score += 1;
+          scoreEl.textContent = String(score);
+          blip();
+          setTimeout(() => bubble.remove(), 180);
+        });
+        bubble.addEventListener("animationend", (event) => {
+          if (event.animationName === "rise") bubble.remove();
+        });
+        field.appendChild(bubble);
+      }
+
+      let audio;
+      function blip() {
+        if (!audio) audio = new AudioContext();
+        if (audio.state === "suspended") audio.resume();
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.frequency.value = 520 + Math.random() * 280;
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0.0001, audio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.08, audio.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(audio.destination);
+        osc.start();
+        osc.stop(audio.currentTime + 0.16);
+      }
+    </script>
+  </body>
+</html>

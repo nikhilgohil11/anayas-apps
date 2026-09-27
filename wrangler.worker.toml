@@ -1,0 +1,16 @@
+name = "anayagohil"
+main = "worker/index.js"
+compatibility_date = "2026-09-27"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = true
+
+[[routes]]
+pattern = "anayagohil.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.anayagohil.com"
+custom_domain = true

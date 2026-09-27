@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simon Pads</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #14081f;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+      }
+      .wrap { width: min(420px, 100%); text-align: center; }
+      .status { font-weight: 800; min-height: 1.4em; margin-bottom: 12px; }
+      .pads {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .pad {
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 28px;
+        cursor: pointer;
+        opacity: 0.72;
+        transition: opacity 0.08s linear, transform 0.08s linear;
+      }
+      .pad.is-lit { opacity: 1; transform: scale(0.97); }
+      .pad:disabled { cursor: default; }
+      #p0 { background: #ff5d73; }
+      #p1 { background: #ffd23f; }
+      #p2 { background: #4d7cff; }
+      #p3 { background: #3ecf8e; }
+      .start {
+        margin-top: 16px;
+        border: 0;
+        background: #fff;
+        color: #14081f;
+        font: inherit;
+        font-weight: 800;
+        border-radius: 999px;
+        padding: 12px 22px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="status" id="status">Repeat the pads.</div>
+      <div class="pads">
+        <button class="pad" id="p0" type="button" aria-label="Red pad"></button>
+        <button class="pad" id="p1" type="button" aria-label="Yellow pad"></button>
+        <button class="pad" id="p2" type="button" aria-label="Blue pad"></button>
+        <button class="pad" id="p3" type="button" aria-label="Green pad"></button>
+      </div>
+      <button class="start" id="start" type="button">Start</button>
+    </div>
+    <script>
+      const tones = [329.63, 392, 440, 523.25];
+      const pads = [0, 1, 2, 3].map((i) => document.getElementById(`p${i}`));
+      const status = document.getElementById("status");
+      const startBtn = document.getElementById("start");
+      let sequence = [];
+      let step = 0;
+      let playing = false;
+      let accepting = false;
+      let audio;
+
+      pads.forEach((pad, index) => {
+        pad.addEventListener("pointerdown", () => {
+          if (!accepting) return;
+          flash(index);
+          tone(tones[index]);
+          if (index !== sequence[step]) {
+            fail();
+            return;
+          }
+          step += 1;
+          if (step === sequence.length) {
+            accepting = false;
+            status.textContent = `Level ${sequence.length}`;
+            setTimeout(nextRound, 700);
+          }
+        });
+      });
+
+      startBtn.addEventListener("click", () => {
+        sequence = [];
+        startBtn.hidden = true;
+        nextRound();
+      });
+
+      function nextRound() {
+        sequence.push(Math.floor(Math.random() * 4));
+        step = 0;
+        playback();
+      }
+
+      async function playback() {
+        playing = true;
+        accepting = false;
+        status.textContent = "Watch";
+        await wait(400);
+        for (const index of sequence) {
+          flash(index);
+          tone(tones[index]);
+          await wait(Math.max(220, 520 - sequence.length * 30));
+          await wait(120);
+        }
+        playing = false;
+        accepting = true;
+        status.textContent = "Your turn";
+      }
+
+      function fail() {
+        accepting = false;
+        status.textContent = `Score ${sequence.length - 1}. Try again?`;
+        startBtn.hidden = false;
+        startBtn.textContent = "Play again";
+        pads.forEach((pad) => pad.classList.add("is-lit"));
+        setTimeout(() => pads.forEach((pad) => pad.classList.remove("is-lit")), 280);
+      }
+
+      function flash(index) {
+        const pad = pads[index];
+        pad.classList.add("is-lit");
+        setTimeout(() => pad.classList.remove("is-lit"), 220);
+      }
+
+      function tone(freq) {
+        if (!audio) audio = new AudioContext();
+        if (audio.state === "suspended") audio.resume();
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, audio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.12, audio.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.28);
+        osc.connect(gain);
+        gain.connect(audio.destination);
+        osc.start();
+        osc.stop(audio.currentTime + 0.3);
+      }
+
+      function wait(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+    </script>
+  </body>
+</html>

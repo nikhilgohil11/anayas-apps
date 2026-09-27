@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Doodle</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #fff7ea;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 10px;
+      }
+      .swatch, .tool {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        cursor: pointer;
+      }
+      .swatch.is-on, .tool.is-on { border-color: #1c2430; }
+      .tool, .wide {
+        border: 0;
+        background: #fff;
+        font: inherit;
+        font-weight: 800;
+        border-radius: 999px;
+        cursor: pointer;
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+      }
+      .tool { width: auto; height: auto; padding: 8px 12px; }
+      .wide { padding: 8px 12px; }
+      canvas { flex: 1; width: 100%; touch-action: none; background: #fff; cursor: crosshair; }
+    </style>
+  </head>
+  <body>
+    <div class="tools" id="tools">
+      <button class="tool" id="undo" type="button">Undo</button>
+      <button class="wide" id="clear" type="button">Clear</button>
+    </div>
+    <canvas id="paper"></canvas>
+    <script>
+      const colors = ["#1c2430", "#e85d4c", "#f0a202", "#6ab04c", "#2f6bff", "#b83fce", "#ff8fab", "#ffffff"];
+      const tools = document.getElementById("tools");
+      const canvas = document.getElementById("paper");
+      const ctx = canvas.getContext("2d");
+      let color = colors[1];
+      let size = 8;
+      let drawing = false;
+      let strokes = [];
+      let current = null;
+
+      colors.forEach((swatch, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "swatch" + (index === 1 ? " is-on" : "");
+        button.style.background = swatch === "#ffffff" ? "#f4f4f4" : swatch;
+        button.setAttribute("aria-label", swatch === "#ffffff" ? "Eraser" : `Color ${swatch}`);
+        button.addEventListener("click", () => {
+          color = swatch;
+          document.querySelectorAll(".swatch").forEach((el) => el.classList.remove("is-on"));
+          button.classList.add("is-on");
+        });
+        tools.appendChild(button);
+      });
+
+      [4, 10, 18].forEach((brush, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tool" + (index === 1 ? " is-on" : "");
+        button.textContent = index === 0 ? "S" : index === 1 ? "M" : "L";
+        button.addEventListener("click", () => {
+          size = brush;
+          document.querySelectorAll(".tool").forEach((el) => {
+            if (el.id !== "undo") el.classList.remove("is-on");
+          });
+          button.classList.add("is-on");
+        });
+        tools.appendChild(button);
+      });
+
+      document.getElementById("undo").addEventListener("click", () => {
+        strokes.pop();
+        paint();
+      });
+      document.getElementById("clear").addEventListener("click", () => {
+        strokes = [];
+        paint();
+      });
+
+      function resize() {
+        const ratio = devicePixelRatio || 1;
+        canvas.width = canvas.clientWidth * ratio;
+        canvas.height = canvas.clientHeight * ratio;
+        paint();
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      canvas.addEventListener("pointerdown", (event) => {
+        canvas.setPointerCapture(event.pointerId);
+        drawing = true;
+        current = { color, size, pts: [point(event)] };
+        strokes.push(current);
+        paint();
+      });
+      canvas.addEventListener("pointermove", (event) => {
+        if (!drawing || !current) return;
+        current.pts.push(point(event));
+        paint();
+      });
+      canvas.addEventListener("pointerup", () => { drawing = false; current = null; });
+
+      function point(event) {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = devicePixelRatio || 1;
+        return {
+          x: (event.clientX - rect.left) * ratio,
+          y: (event.clientY - rect.top) * ratio,
+        };
+      }
+
+      function paint() {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const stroke of strokes) {
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.size * (devicePixelRatio || 1);
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          stroke.pts.forEach((pt, index) => {
+            if (index === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          });
+          ctx.stroke();
+        }
+      }
+    </script>
+  </body>
+</html>
