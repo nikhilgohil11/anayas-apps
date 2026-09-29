@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hop</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body { background: #7ec8ff; overflow: hidden; font-family: system-ui, sans-serif; }
+      canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+      .over {
+        position: absolute; inset: 0; display: grid; place-items: center;
+        background: rgba(20, 60, 90, 0.35);
+      }
+      .over[hidden] { display: none; }
+      .card { background: #fff; color: #1d4e89; border-radius: 24px; padding: 24px 28px; text-align: center; }
+      h1 { margin: 0 0 8px; }
+      button { border: 0; background: #2f6bff; color: #fff; font: inherit; font-weight: 800; border-radius: 999px; padding: 12px 18px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div class="over" id="over">
+      <div class="card">
+        <h1>Hop</h1>
+        <p id="blurb">Tap to jump over the blocks.</p>
+        <button id="play" type="button">Play</button>
+      </div>
+    </div>
+    <script>
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const over = document.getElementById("over");
+      const blurb = document.getElementById("blurb");
+      let w, h, dpr, y, vy, onGround, blocks, score, running, last, spawn, speed;
+      let best = Number(localStorage.getItem("anaya-hop") || 0);
+
+      function fit() {
+        dpr = devicePixelRatio || 1;
+        w = canvas.clientWidth;
+        h = canvas.clientHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      window.addEventListener("resize", fit);
+      fit();
+
+      function start() {
+        fit();
+        y = h * 0.62;
+        vy = 0;
+        onGround = true;
+        blocks = [];
+        score = 0;
+        speed = 280;
+        spawn = 0;
+        running = true;
+        over.hidden = true;
+        last = performance.now();
+        requestAnimationFrame(frame);
+      }
+
+      function jump() {
+        if (!running) return;
+        if (onGround) {
+          vy = -h * 1.35;
+          onGround = false;
+        }
+      }
+
+      canvas.addEventListener("pointerdown", jump);
+      window.addEventListener("keydown", (event) => {
+        if (event.code === "Space" || event.code === "ArrowUp") {
+          event.preventDefault();
+          jump();
+        }
+      });
+      document.getElementById("play").addEventListener("click", start);
+
+      function frame(now) {
+        if (!running) return;
+        const dt = Math.min(32, now - last) / 1000;
+        last = now;
+        const ground = h * 0.72;
+        vy += h * 3.2 * dt;
+        y += vy * dt;
+        if (y >= ground - 46) {
+          y = ground - 46;
+          vy = 0;
+          onGround = true;
+        }
+        spawn += dt;
+        speed = 280 + score * 12;
+        if (spawn > Math.max(0.85, 1.5 - score * 0.03)) {
+          spawn = 0;
+          blocks.push({ x: w + 20, w: 28 + Math.random() * 22, h: 36 + Math.random() * 40 });
+        }
+        for (const block of blocks) block.x -= speed * dt;
+        const blob = { x: w * 0.22, y, w: 42, h: 46 };
+        const hit = blocks.some((block) => {
+          const top = ground - block.h;
+          return blob.x < block.x + block.w && blob.x + blob.w > block.x && blob.y < ground && blob.y + blob.h > top;
+        });
+        const before = blocks.length;
+        blocks = blocks.filter((block) => block.x + block.w > -10);
+        score += before - blocks.length;
+        draw(ground);
+        if (hit) {
+          running = false;
+          best = Math.max(best, score);
+          localStorage.setItem("anaya-hop", String(best));
+          blurb.textContent = `Score ${score}. Best ${best}.`;
+          document.getElementById("play").textContent = "Play again";
+          over.hidden = false;
+          return;
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function draw(ground) {
+        ctx.clearRect(0, 0, w, h);
+        const sky = ctx.createLinearGradient(0, 0, 0, h);
+        sky.addColorStop(0, "#8fd3ff");
+        sky.addColorStop(1, "#d9f6c8");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = "#67b35a";
+        ctx.fillRect(0, ground, w, h - ground);
+        ctx.fillStyle = "#1d4e89";
+        ctx.font = "800 22px system-ui, sans-serif";
+        ctx.fillText(String(score), 16, 36);
+        ctx.fillStyle = "#f4a261";
+        for (const block of blocks) ctx.fillRect(block.x, ground - block.h, block.w, block.h);
+        ctx.fillStyle = "#ff8fab";
+        round(w * 0.22, y, 42, 46, 16);
+        ctx.fillStyle = "#1d4e89";
+        ctx.beginPath();
+        ctx.arc(w * 0.22 + 28, y + 16, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function round(x, y, width, height, r) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, r);
+        ctx.fill();
+      }
+    </script>
+  </body>
+</html>

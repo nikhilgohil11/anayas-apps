@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rally</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body { background: #123524; overflow: hidden; font-family: system-ui, sans-serif; color: #fff; }
+      canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+      .over { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(6, 24, 16, 0.45); }
+      .over[hidden] { display: none; }
+      .card { background: #fff; color: #123524; border-radius: 24px; padding: 24px; text-align: center; max-width: 320px; }
+      h1 { margin: 0 0 8px; }
+      button { border: 0; background: #123524; color: #fff; font: inherit; font-weight: 800; border-radius: 999px; padding: 12px 18px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div class="over" id="over">
+      <div class="card">
+        <h1>Rally</h1>
+        <p id="blurb">Two players, one screen. Left side moves the green paddle. Right side moves the yellow paddle. First to 5 wins.</p>
+        <button id="play" type="button">Play</button>
+      </div>
+    </div>
+    <script>
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      let w, h, left, right, ball, scores, running, last;
+
+      function fit() {
+        const dpr = devicePixelRatio || 1;
+        w = canvas.clientWidth;
+        h = canvas.clientHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      window.addEventListener("resize", fit);
+      fit();
+
+      function start() {
+        fit();
+        left = h / 2;
+        right = h / 2;
+        scores = [0, 0];
+        serve(1);
+        running = true;
+        document.getElementById("over").hidden = true;
+        last = performance.now();
+        requestAnimationFrame(frame);
+      }
+
+      function serve(dir) {
+        ball = { x: w / 2, y: h / 2, vx: dir * 280, vy: (Math.random() > 0.5 ? 1 : -1) * 160 };
+      }
+
+      function aim(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const y = clientY - rect.top;
+        if (clientX - rect.left < rect.width / 2) left = y;
+        else right = y;
+      }
+      canvas.addEventListener("pointermove", (event) => aim(event.clientX, event.clientY));
+      canvas.addEventListener("pointerdown", (event) => aim(event.clientX, event.clientY));
+      window.addEventListener("keydown", (event) => {
+        if (event.code === "KeyW") left -= 24;
+        if (event.code === "KeyS") left += 24;
+        if (event.code === "ArrowUp") right -= 24;
+        if (event.code === "ArrowDown") right += 24;
+      });
+      document.getElementById("play").addEventListener("click", start);
+
+      function frame(now) {
+        if (!running) return;
+        const dt = Math.min(32, now - last) / 1000;
+        last = now;
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+        if (ball.y < 12 || ball.y > h - 12) ball.vy *= -1;
+        const ph = 78;
+        if (ball.vx < 0 && ball.x < 36 && Math.abs(ball.y - left) < ph / 2) {
+          ball.vx = Math.abs(ball.vx) + 15;
+          ball.vy += (ball.y - left) * 3;
+          ball.x = 36;
+        }
+        if (ball.vx > 0 && ball.x > w - 36 && Math.abs(ball.y - right) < ph / 2) {
+          ball.vx = -Math.abs(ball.vx) - 15;
+          ball.vy += (ball.y - right) * 3;
+          ball.x = w - 36;
+        }
+        if (ball.x < 0) { scores[1] += 1; serve(-1); }
+        if (ball.x > w) { scores[0] += 1; serve(1); }
+        draw(ph);
+        if (scores[0] >= 5 || scores[1] >= 5) {
+          running = false;
+          const winner = scores[0] > scores[1] ? "Green" : "Yellow";
+          document.getElementById("blurb").textContent = `${winner} wins ${scores[0]}–${scores[1]}.`;
+          document.getElementById("play").textContent = "Play again";
+          document.getElementById("over").hidden = false;
+          return;
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function draw(ph) {
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "#145c38";
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = "rgba(255,255,255,.35)";
+        ctx.setLineDash([8, 10]);
+        ctx.beginPath();
+        ctx.moveTo(w / 2, 0);
+        ctx.lineTo(w / 2, h);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#fff";
+        ctx.font = "800 28px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`${scores[0]}    ${scores[1]}`, w / 2, 42);
+        ctx.fillStyle = "#7ed957";
+        ctx.fillRect(16, left - ph / 2, 12, ph);
+        ctx.fillStyle = "#ffd23f";
+        ctx.fillRect(w - 28, right - ph / 2, 12, ph);
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    </script>
+  </body>
+</html>

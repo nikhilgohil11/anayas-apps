@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Slide</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#ffe08a, #f4a261);
+        color: #5a3412;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 16px;
+      }
+      .hud { font-weight: 800; }
+      .board {
+        width: min(360px, 92vw);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .tile {
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 16px;
+        background: #fff8ec;
+        font: inherit;
+        font-size: 2rem;
+        font-weight: 800;
+        color: #5a3412;
+        cursor: pointer;
+        box-shadow: 0 6px 0 rgba(120, 70, 10, 0.16);
+      }
+      .tile.empty { background: transparent; box-shadow: none; cursor: default; }
+      button.again { border: 0; background: #5a3412; color: #fff; font: inherit; font-weight: 800; border-radius: 999px; padding: 10px 16px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Slide the tiles into order</div>
+    <div class="board" id="board"></div>
+    <button class="again" id="again" type="button">Shuffle</button>
+    <script>
+      const board = document.getElementById("board");
+      const hud = document.getElementById("hud");
+      let tiles = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+      let moves = 0;
+
+      document.getElementById("again").addEventListener("click", shuffle);
+      shuffle();
+
+      function shuffle() {
+        tiles = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        for (let i = 0; i < 80; i += 1) {
+          const empty = tiles.indexOf(0);
+          const options = neighbors(empty);
+          const pick = options[Math.floor(Math.random() * options.length)];
+          [tiles[empty], tiles[pick]] = [tiles[pick], tiles[empty]];
+        }
+        moves = 0;
+        hud.textContent = "Slide the tiles into order";
+        render();
+      }
+
+      function neighbors(index) {
+        const row = Math.floor(index / 3);
+        const col = index % 3;
+        const list = [];
+        if (row > 0) list.push(index - 3);
+        if (row < 2) list.push(index + 3);
+        if (col > 0) list.push(index - 1);
+        if (col < 2) list.push(index + 1);
+        return list;
+      }
+
+      function render() {
+        board.replaceChildren();
+        tiles.forEach((value, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "tile" + (value === 0 ? " empty" : "");
+          button.textContent = value === 0 ? "" : String(value);
+          button.setAttribute("aria-label", value === 0 ? "Empty" : `Tile ${value}`);
+          button.addEventListener("click", () => slide(index));
+          board.appendChild(button);
+        });
+      }
+
+      function slide(index) {
+        const empty = tiles.indexOf(0);
+        if (!neighbors(empty).includes(index)) return;
+        [tiles[empty], tiles[index]] = [tiles[index], tiles[empty]];
+        moves += 1;
+        render();
+        if (tiles.every((value, i) => value === (i + 1) % 9)) hud.textContent = `Solved in ${moves} moves`;
+      }
+    </script>
+  </body>
+</html>

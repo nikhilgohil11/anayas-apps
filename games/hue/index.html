@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hue</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f7f4ef;
+        color: #1c2430;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 16px;
+      }
+      .target {
+        width: min(180px, 40vw);
+        aspect-ratio: 1;
+        border-radius: 28px;
+        box-shadow: 0 12px 0 rgba(0, 0, 0, 0.08);
+      }
+      .choices { width: min(440px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .choice {
+        border: 0;
+        border-radius: 18px;
+        min-height: 84px;
+        font: inherit;
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: #1c2430;
+        cursor: pointer;
+      }
+      .hud { font-weight: 800; font-size: 1.2rem; }
+      .flash { outline: 4px solid #1c2430; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Match the color · 0</div>
+    <div class="target" id="target"></div>
+    <div class="choices" id="choices"></div>
+    <script>
+      const colors = [
+        ["Red", "#e85d4c"],
+        ["Orange", "#f0a202"],
+        ["Yellow", "#ffe56a"],
+        ["Green", "#6ab04c"],
+        ["Blue", "#2f6bff"],
+        ["Purple", "#b388ff"],
+        ["Pink", "#ff8fab"],
+        ["Teal", "#2ec4b6"],
+      ];
+      const target = document.getElementById("target");
+      const choices = document.getElementById("choices");
+      const hud = document.getElementById("hud");
+      let answer = 0;
+      let score = 0;
+      let lock = false;
+
+      function round() {
+        lock = false;
+        hud.textContent = `Match the color · ${score}`;
+        const order = colors.map((_, index) => index).sort(() => Math.random() - 0.5);
+        answer = order[0];
+        const options = order.slice(0, 4).sort(() => Math.random() - 0.5);
+        target.style.background = colors[answer][1];
+        choices.replaceChildren();
+        for (const index of options) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "choice";
+          button.style.background = "#fff";
+          button.textContent = colors[index][0];
+          button.addEventListener("click", () => pick(index, button));
+          choices.appendChild(button);
+        }
+      }
+
+      function pick(index, button) {
+        if (lock) return;
+        lock = true;
+        if (index === answer) {
+          score += 1;
+          hud.textContent = `Match the color · ${score}`;
+          button.style.background = "#d8ffb0";
+          setTimeout(round, 280);
+          return;
+        }
+        button.style.background = "#ffd0d0";
+        hud.textContent = `Score ${score}. Try again.`;
+        score = 0;
+        setTimeout(round, 500);
+      }
+
+      round();
+    </script>
+  </body>
+</html>

@@ -156,4 +156,93 @@ const GAMES = [
       <polygon points="168,108 150,102 156,120" fill="#e8b86a"/>
     `),
   },
+  {
+    id: "hop",
+    title: "Hop",
+    category: "arcade",
+    src: "games/hop/",
+    tags: ["jump", "arcade", "runner"],
+    art: cover("c-hop", ["#8fd3ff", "#d9f6c8"], `
+      <rect x="0" y="140" width="200" height="60" fill="#67b35a"/>
+      <rect x="128" y="96" width="28" height="44" rx="6" fill="#f4a261"/>
+      <rect x="46" y="78" width="46" height="50" rx="16" fill="#ff8fab"/>
+      <circle cx="76" cy="96" r="4" fill="#1d4e89"/>
+    `),
+  },
+  {
+    id: "bricks",
+    title: "Bricks",
+    category: "arcade",
+    src: "games/bricks/",
+    tags: ["breakout", "ball", "arcade", "bounce"],
+    art: cover("c-bricks", ["#2a3160", "#14182f"], `
+      <rect x="28" y="36" width="34" height="16" rx="4" fill="#ff5d73"/>
+      <rect x="68" y="36" width="34" height="16" rx="4" fill="#ffd23f"/>
+      <rect x="108" y="36" width="34" height="16" rx="4" fill="#3ecf8e"/>
+      <rect x="148" y="36" width="24" height="16" rx="4" fill="#4d7cff"/>
+      <rect x="28" y="58" width="34" height="16" rx="4" fill="#e056c1"/>
+      <rect x="68" y="58" width="34" height="16" rx="4" fill="#ff5d73"/>
+      <rect x="108" y="58" width="34" height="16" rx="4" fill="#ffd23f"/>
+      <circle cx="100" cy="120" r="10" fill="#fff"/>
+      <rect x="70" y="156" width="60" height="12" rx="6" fill="#fff"/>
+    `),
+  },
+  {
+    id: "whack",
+    title: "Whack",
+    category: "arcade",
+    src: "games/whack/",
+    tags: ["tap", "whack", "arcade"],
+    art: cover("c-whack", ["#8fd18a", "#2f7d42"], `
+      <circle cx="58" cy="78" r="28" fill="#1d4a28"/>
+      <circle cx="142" cy="78" r="28" fill="#1d4a28"/>
+      <circle cx="100" cy="132" r="32" fill="#163f22"/>
+      <circle cx="100" cy="118" r="18" fill="#ffe08a"/>
+      <circle cx="94" cy="116" r="2.5" fill="#1c2430"/><circle cx="106" cy="116" r="2.5" fill="#1c2430"/>
+    `),
+  },
+  {
+    id: "slide",
+    title: "Slide",
+    category: "puzzle",
+    src: "games/slide/",
+    tags: ["puzzle", "slide", "tiles", "numbers"],
+    art: cover("c-slide", ["#ffe08a", "#f4a261"], `
+      <rect x="36" y="36" width="40" height="40" rx="8" fill="#fff8ec"/>
+      <rect x="82" y="36" width="40" height="40" rx="8" fill="#fff8ec"/>
+      <rect x="128" y="36" width="40" height="40" rx="8" fill="#fff8ec"/>
+      <rect x="36" y="82" width="40" height="40" rx="8" fill="#fff8ec"/>
+      <rect x="82" y="82" width="40" height="40" rx="8" fill="#fff8ec"/>
+      <rect x="128" y="82" width="40" height="40" rx="8" fill="#fff"/>
+      <text x="48" y="64" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#5a3412">1</text>
+      <text x="94" y="64" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#5a3412">2</text>
+      <text x="140" y="64" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#5a3412">3</text>
+    `),
+  },
+  {
+    id: "rally",
+    title: "Rally",
+    category: "2player",
+    src: "games/rally/",
+    tags: ["pong", "2 player", "two player", "ball"],
+    art: cover("c-rally", ["#1f8a4c", "#123524"], `
+      <rect x="28" y="70" width="14" height="60" rx="6" fill="#7ed957"/>
+      <rect x="158" y="70" width="14" height="60" rx="6" fill="#ffd23f"/>
+      <circle cx="100" cy="100" r="12" fill="#fff"/>
+      <path d="M100 28v144" stroke="#fff" stroke-width="4" stroke-dasharray="8 10" opacity=".5"/>
+    `),
+  },
+  {
+    id: "hue",
+    title: "Hue",
+    category: "puzzle",
+    src: "games/hue/",
+    tags: ["color", "colors", "match", "puzzle"],
+    art: cover("c-hue", ["#fff7ea", "#f3e7d3"], `
+      <circle cx="100" cy="78" r="36" fill="#e85d4c"/>
+      <rect x="28" y="132" width="64" height="36" rx="10" fill="#fff"/>
+      <rect x="108" y="132" width="64" height="36" rx="10" fill="#fff"/>
+      <text x="42" y="156" font-size="16" font-family="Arial, sans-serif" font-weight="700" fill="#1c2430">Red</text>
+    `),
+  },
 ];

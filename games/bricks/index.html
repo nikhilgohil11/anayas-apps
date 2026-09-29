@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bricks</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body { background: #1b2140; overflow: hidden; font-family: system-ui, sans-serif; color: #fff; }
+      canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+      .over { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(8, 10, 24, 0.45); }
+      .over[hidden] { display: none; }
+      .card { background: #fff; color: #1b2140; border-radius: 24px; padding: 24px; text-align: center; }
+      h1 { margin: 0 0 8px; }
+      button { border: 0; background: #6c63ff; color: #fff; font: inherit; font-weight: 800; border-radius: 999px; padding: 12px 18px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div class="over" id="over">
+      <div class="card">
+        <h1>Bricks</h1>
+        <p id="blurb">Move to bounce the ball. Clear the wall.</p>
+        <button id="play" type="button">Play</button>
+      </div>
+    </div>
+    <script>
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const colors = ["#ff5d73", "#ffd23f", "#3ecf8e", "#4d7cff", "#e056c1"];
+      let w, h, dpr, paddle, ball, bricks, running, score, lives;
+      let best = Number(localStorage.getItem("anaya-bricks") || 0);
+
+      function fit() {
+        dpr = devicePixelRatio || 1;
+        w = canvas.clientWidth;
+        h = canvas.clientHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      window.addEventListener("resize", fit);
+      fit();
+
+      function layoutBricks() {
+        bricks = [];
+        const cols = 8;
+        const rows = 5;
+        const gap = 6;
+        const top = 56;
+        const bw = (w - gap * (cols + 1)) / cols;
+        const bh = 22;
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            bricks.push({
+              x: gap + col * (bw + gap),
+              y: top + row * (bh + gap),
+              w: bw,
+              h: bh,
+              color: colors[row % colors.length],
+            });
+          }
+        }
+      }
+
+      function start() {
+        fit();
+        score = 0;
+        lives = 3;
+        paddle = { x: w / 2 - 48, w: 96, h: 14 };
+        ball = { x: w / 2, y: h * 0.7, vx: 220, vy: -280, r: 8 };
+        layoutBricks();
+        running = true;
+        document.getElementById("over").hidden = true;
+        requestAnimationFrame(frame);
+      }
+
+      function movePaddle(clientX) {
+        const rect = canvas.getBoundingClientRect();
+        paddle.x = Math.min(w - paddle.w, Math.max(0, clientX - rect.left - paddle.w / 2));
+      }
+      canvas.addEventListener("pointermove", (event) => movePaddle(event.clientX));
+      canvas.addEventListener("pointerdown", (event) => movePaddle(event.clientX));
+      document.getElementById("play").addEventListener("click", start);
+
+      let last = 0;
+      function frame(now) {
+        if (!running) return;
+        const dt = Math.min(32, now - (last || now)) / 1000;
+        last = now;
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+        if (ball.x < ball.r || ball.x > w - ball.r) ball.vx *= -1;
+        if (ball.y < ball.r) ball.vy *= -1;
+        const py = h - 36;
+        if (ball.vy > 0 && ball.y + ball.r >= py && ball.y < py + paddle.h && ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
+          const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+          ball.vx = hit * 320;
+          ball.vy = -Math.abs(ball.vy);
+          ball.y = py - ball.r;
+        }
+        bricks = bricks.filter((brick) => {
+          const hit = ball.x > brick.x && ball.x < brick.x + brick.w && ball.y > brick.y && ball.y < brick.y + brick.h;
+          if (!hit) return true;
+          ball.vy *= -1;
+          score += 1;
+          return false;
+        });
+        draw(py);
+        if (!bricks.length) return finish(true);
+        if (ball.y > h + 20) {
+          lives -= 1;
+          if (lives <= 0) return finish(false);
+          ball.x = w / 2;
+          ball.y = h * 0.7;
+          ball.vx = 220;
+          ball.vy = -280;
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function finish(won) {
+        running = false;
+        best = Math.max(best, score);
+        localStorage.setItem("anaya-bricks", String(best));
+        document.getElementById("blurb").textContent = won ? `Wall cleared. Score ${score}.` : `Score ${score}. Best ${best}.`;
+        document.getElementById("play").textContent = "Play again";
+        document.getElementById("over").hidden = false;
+      }
+
+      function draw(py) {
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "#14182f";
+        ctx.fillRect(0, 0, w, h);
+        for (const brick of bricks) {
+          ctx.fillStyle = brick.color;
+          ctx.beginPath();
+          ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 6);
+          ctx.fill();
+        }
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.roundRect(paddle.x, py, paddle.w, paddle.h, 8);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = "800 18px system-ui, sans-serif";
+        ctx.fillText(`${score}   ${"●".repeat(lives)}`, 16, 32);
+      }
+    </script>
+  </body>
+</html>
