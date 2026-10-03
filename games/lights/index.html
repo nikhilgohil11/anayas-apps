@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lights</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #1a1740;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 16px;
+      }
+      .hud { font-weight: 800; }
+      .grid { width: min(360px, 92vw); display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .lamp {
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 16px;
+        background: #2a2558;
+        cursor: pointer;
+        box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.06);
+      }
+      .lamp.on { background: #ffe56a; box-shadow: 0 0 18px #ffe56a; }
+      button.text { border: 0; background: #fff; color: #1a1740; font: inherit; font-weight: 800; border-radius: 999px; padding: 10px 16px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Level 1 · turn them all off</div>
+    <div class="grid" id="grid"></div>
+    <button class="text" id="reset" type="button">Restart level</button>
+    <script>
+      const size = 4;
+      const grid = document.getElementById("grid");
+      const hud = document.getElementById("hud");
+      let level = 1;
+      let lights = [];
+      let start = [];
+      let moves = 0;
+
+      document.getElementById("reset").addEventListener("click", () => {
+        lights = start.slice();
+        moves = 0;
+        paint();
+      });
+
+      function idx(row, col) { return row * size + col; }
+
+      function toggle(index) {
+        const row = Math.floor(index / size);
+        const col = index % size;
+        const spots = [[row, col], [row - 1, col], [row + 1, col], [row, col - 1], [row, col + 1]];
+        for (const [r, c] of spots) {
+          if (r < 0 || c < 0 || r >= size || c >= size) continue;
+          const i = idx(r, c);
+          lights[i] = lights[i] ? 0 : 1;
+        }
+      }
+
+      function newLevel() {
+        lights = Array(size * size).fill(0);
+        const presses = 2 + level;
+        for (let n = 0; n < presses; n += 1) toggle(Math.floor(Math.random() * lights.length));
+        if (lights.every((on) => !on)) toggle(0);
+        start = lights.slice();
+        moves = 0;
+        paint();
+      }
+
+      function paint() {
+        hud.textContent = lights.every((on) => !on)
+          ? `Level ${level} cleared`
+          : `Level ${level} · ${moves} taps`;
+        grid.replaceChildren();
+        lights.forEach((on, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "lamp" + (on ? " on" : "");
+          button.setAttribute("aria-label", on ? "Light on" : "Light off");
+          button.addEventListener("click", () => press(index));
+          grid.appendChild(button);
+        });
+        if (lights.every((on) => !on)) setTimeout(() => { level += 1; newLevel(); }, 600);
+      }
+
+      function press(index) {
+        if (lights.every((on) => !on)) return;
+        toggle(index);
+        moves += 1;
+        paint();
+      }
+
+      newLevel();
+    </script>
+  </body>
+</html>

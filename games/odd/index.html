@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Odd One</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#fff4d6, #f7c1d8);
+        color: #3a2440;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 16px;
+      }
+      .hud { font-weight: 800; font-size: 1.2rem; }
+      .grid { width: min(420px, 100%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .spot {
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 20px;
+        background: #fff;
+        font-size: 2.4rem;
+        cursor: pointer;
+        box-shadow: 0 8px 0 rgba(80, 30, 60, 0.08);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Find the odd one · 0</div>
+    <div class="grid" id="grid"></div>
+    <script>
+      const sets = [
+        ["★", "☆"],
+        ["●", "○"],
+        ["▲", "△"],
+        ["♥", "♡"],
+        ["☀", "☁"],
+        ["♫", "♪"],
+      ];
+      const grid = document.getElementById("grid");
+      const hud = document.getElementById("hud");
+      let score = 0;
+      let lock = false;
+
+      function round() {
+        lock = false;
+        const [common, odd] = sets[Math.floor(Math.random() * sets.length)];
+        const oddIndex = Math.floor(Math.random() * 9);
+        grid.replaceChildren();
+        for (let i = 0; i < 9; i += 1) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "spot";
+          button.textContent = i === oddIndex ? odd : common;
+          button.setAttribute("aria-label", i === oddIndex ? "Odd one" : "Match");
+          button.addEventListener("click", () => pick(i === oddIndex, button));
+          grid.appendChild(button);
+        }
+      }
+
+      function pick(correct, button) {
+        if (lock) return;
+        lock = true;
+        if (correct) {
+          score += 1;
+          hud.textContent = `Find the odd one · ${score}`;
+          button.style.background = "#d8ffb0";
+          setTimeout(round, 280);
+          return;
+        }
+        button.style.background = "#ffd0d0";
+        hud.textContent = `Score ${score}. Look again.`;
+        score = 0;
+        setTimeout(() => { hud.textContent = "Find the odd one · 0"; round(); }, 500);
+      }
+
+      round();
+    </script>
+  </body>
+</html>

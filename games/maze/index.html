@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maze</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #10243a;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px;
+        touch-action: none;
+      }
+      .hud { font-weight: 800; }
+      canvas { width: min(92vw, 70vh); height: min(92vw, 70vh); background: #16324f; border-radius: 16px; }
+      .pad { display: grid; grid-template-columns: 64px 64px 64px; gap: 6px; }
+      .pad button {
+        border: 0; background: #fff; color: #10243a; font: inherit; font-weight: 800;
+        border-radius: 12px; height: 48px; cursor: pointer;
+      }
+      .pad .up { grid-column: 2; grid-row: 1; }
+      .pad .left { grid-column: 1; grid-row: 2; }
+      .pad .down { grid-column: 2; grid-row: 2; }
+      .pad .right { grid-column: 3; grid-row: 2; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Level 1</div>
+    <canvas id="board" width="420" height="420"></canvas>
+    <div class="pad">
+      <button class="up" type="button" aria-label="Up">▲</button>
+      <button class="left" type="button" aria-label="Left">◀</button>
+      <button class="down" type="button" aria-label="Down">▼</button>
+      <button class="right" type="button" aria-label="Right">▶</button>
+    </div>
+    <script>
+      const canvas = document.getElementById("board");
+      const ctx = canvas.getContext("2d");
+      const hud = document.getElementById("hud");
+      let level = 1;
+      let cols, cells, player;
+
+      function build() {
+        cols = 5 + level * 2;
+        if (cols % 2 === 0) cols += 1;
+        cells = Array.from({ length: cols * cols }, () => ({ n: true, e: true, s: true, w: true, seen: false }));
+        const stack = [0];
+        cells[0].seen = true;
+        while (stack.length) {
+          const current = stack[stack.length - 1];
+          const row = Math.floor(current / cols);
+          const col = current % cols;
+          const next = [];
+          if (row > 0 && !cells[current - cols].seen) next.push(["n", current - cols]);
+          if (col < cols - 1 && !cells[current + 1].seen) next.push(["e", current + 1]);
+          if (row < cols - 1 && !cells[current + cols].seen) next.push(["s", current + cols]);
+          if (col > 0 && !cells[current - 1].seen) next.push(["w", current - 1]);
+          if (!next.length) { stack.pop(); continue; }
+          const [dir, dest] = next[Math.floor(Math.random() * next.length)];
+          const back = { n: "s", s: "n", e: "w", w: "e" }[dir];
+          cells[current][dir] = false;
+          cells[dest][back] = false;
+          cells[dest].seen = true;
+          stack.push(dest);
+        }
+        player = 0;
+        hud.textContent = `Level ${level}`;
+        draw();
+      }
+
+      function move(dir) {
+        if (cells[player][dir]) return;
+        const step = { n: -cols, s: cols, e: 1, w: -1 }[dir];
+        player += step;
+        if (player === cols * cols - 1) {
+          level += 1;
+          build();
+          return;
+        }
+        draw();
+      }
+
+      function draw() {
+        const size = canvas.width / cols;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#16324f";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#d7e6f5";
+        ctx.lineWidth = 4;
+        cells.forEach((cell, index) => {
+          const x = (index % cols) * size;
+          const y = Math.floor(index / cols) * size;
+          ctx.beginPath();
+          if (cell.n) { ctx.moveTo(x, y); ctx.lineTo(x + size, y); }
+          if (cell.e) { ctx.moveTo(x + size, y); ctx.lineTo(x + size, y + size); }
+          if (cell.s) { ctx.moveTo(x, y + size); ctx.lineTo(x + size, y + size); }
+          if (cell.w) { ctx.moveTo(x, y); ctx.lineTo(x, y + size); }
+          ctx.stroke();
+        });
+        const goal = cols * cols - 1;
+        ctx.fillStyle = "#ffd23f";
+        ctx.beginPath();
+        ctx.arc((goal % cols) * size + size / 2, Math.floor(goal / cols) * size + size / 2, size * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#7ee0ff";
+        ctx.beginPath();
+        ctx.arc((player % cols) * size + size / 2, Math.floor(player / cols) * size + size / 2, size * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      document.querySelector(".up").addEventListener("click", () => move("n"));
+      document.querySelector(".down").addEventListener("click", () => move("s"));
+      document.querySelector(".left").addEventListener("click", () => move("w"));
+      document.querySelector(".right").addEventListener("click", () => move("e"));
+      window.addEventListener("keydown", (event) => {
+        const map = { ArrowUp: "n", ArrowDown: "s", ArrowLeft: "w", ArrowRight: "e" };
+        if (map[event.key]) { event.preventDefault(); move(map[event.key]); }
+      });
+      let swipe = null;
+      canvas.addEventListener("pointerdown", (event) => { swipe = { x: event.clientX, y: event.clientY }; });
+      canvas.addEventListener("pointerup", (event) => {
+        if (!swipe) return;
+        const dx = event.clientX - swipe.x;
+        const dy = event.clientY - swipe.y;
+        if (Math.hypot(dx, dy) < 16) return;
+        if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? "e" : "w");
+        else move(dy > 0 ? "s" : "n");
+      });
+
+      build();
+    </script>
+  </body>
+</html>

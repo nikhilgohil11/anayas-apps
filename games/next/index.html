@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Next</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f4f7fb;
+        color: #1c2430;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 16px;
+      }
+      .hud { font-weight: 800; font-size: 1.15rem; }
+      .row { display: flex; gap: 10px; align-items: center; }
+      .chip, .choice {
+        width: 64px; height: 64px; border-radius: 16px; border: 0;
+      }
+      .choice { cursor: pointer; box-shadow: 0 6px 0 rgba(20, 30, 50, 0.08); }
+      .blank { background: #fff; border: 3px dashed #b7c3d4; }
+      .choices { display: flex; gap: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">What comes next? · 0</div>
+    <div class="row" id="row"></div>
+    <div class="choices" id="choices"></div>
+    <script>
+      const palette = ["#e85d4c", "#f0a202", "#6ab04c", "#2f6bff", "#b388ff"];
+      const row = document.getElementById("row");
+      const choices = document.getElementById("choices");
+      const hud = document.getElementById("hud");
+      let score = 0;
+      let lock = false;
+
+      function pattern() {
+        const a = palette[Math.floor(Math.random() * palette.length)];
+        let b = palette[Math.floor(Math.random() * palette.length)];
+        while (b === a) b = palette[Math.floor(Math.random() * palette.length)];
+        let c = palette[Math.floor(Math.random() * palette.length)];
+        while (c === a || c === b) c = palette[Math.floor(Math.random() * palette.length)];
+        const kind = Math.floor(Math.random() * 3);
+        if (kind === 0) return { shown: [a, b, a, b], answer: a, wrong: [b, c] };
+        if (kind === 1) return { shown: [a, a, b, a], answer: a, wrong: [b, c] };
+        return { shown: [a, b, c, a], answer: b, wrong: [a, c] };
+      }
+
+      function round() {
+        lock = false;
+        hud.textContent = `What comes next? · ${score}`;
+        const { shown, answer, wrong } = pattern();
+        row.replaceChildren();
+        for (const color of shown) {
+          const chip = document.createElement("div");
+          chip.className = "chip";
+          chip.style.background = color;
+          row.appendChild(chip);
+        }
+        const blank = document.createElement("div");
+        blank.className = "chip blank";
+        row.appendChild(blank);
+        const options = [answer, ...wrong].sort(() => Math.random() - 0.5);
+        choices.replaceChildren();
+        for (const color of options) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "choice";
+          button.style.background = color;
+          button.setAttribute("aria-label", "Choose this color");
+          button.addEventListener("click", () => pick(color === answer, button));
+          choices.appendChild(button);
+        }
+      }
+
+      function pick(correct, button) {
+        if (lock) return;
+        lock = true;
+        if (correct) {
+          score += 1;
+          button.style.outline = "4px solid #1c2430";
+          setTimeout(round, 280);
+          return;
+        }
+        hud.textContent = `Score ${score}. Try the next one.`;
+        score = 0;
+        button.style.outline = "4px solid #e85d4c";
+        setTimeout(round, 500);
+      }
+
+      round();
+    </script>
+  </body>
+</html>

@@ -245,4 +245,65 @@ const GAMES = [
       <text x="42" y="156" font-size="16" font-family="Arial, sans-serif" font-weight="700" fill="#1c2430">Red</text>
     `),
   },
+  {
+    id: "lights",
+    title: "Lights",
+    category: "puzzle",
+    src: "games/lights/",
+    tags: ["lights", "puzzle", "toggle", "logic"],
+    art: cover("c-lights", ["#2a2558", "#1a1740"], `
+      <rect x="36" y="36" width="36" height="36" rx="8" fill="#ffe56a"/>
+      <rect x="82" y="36" width="36" height="36" rx="8" fill="#3a3470"/>
+      <rect x="128" y="36" width="36" height="36" rx="8" fill="#ffe56a"/>
+      <rect x="36" y="82" width="36" height="36" rx="8" fill="#3a3470"/>
+      <rect x="82" y="82" width="36" height="36" rx="8" fill="#ffe56a"/>
+      <rect x="128" y="82" width="36" height="36" rx="8" fill="#3a3470"/>
+      <rect x="36" y="128" width="36" height="36" rx="8" fill="#ffe56a"/>
+      <rect x="82" y="128" width="36" height="36" rx="8" fill="#3a3470"/>
+      <rect x="128" y="128" width="36" height="36" rx="8" fill="#ffe56a"/>
+    `),
+  },
+  {
+    id: "maze",
+    title: "Maze",
+    category: "puzzle",
+    src: "games/maze/",
+    tags: ["maze", "puzzle", "path"],
+    art: cover("c-maze", ["#16324f", "#10243a"], `
+      <path d="M40 40h50v30H70v30h50V70h40v30H90v30h70v30H40V40z" fill="none" stroke="#d7e6f5" stroke-width="8"/>
+      <circle cx="52" cy="56" r="8" fill="#7ee0ff"/>
+      <circle cx="150" cy="150" r="8" fill="#ffd23f"/>
+    `),
+  },
+  {
+    id: "odd",
+    title: "Odd One",
+    category: "puzzle",
+    src: "games/odd/",
+    tags: ["odd", "spot", "difference", "puzzle"],
+    art: cover("c-odd", ["#fff4d6", "#f7c1d8"], `
+      <circle cx="58" cy="70" r="16" fill="#fff"/>
+      <circle cx="100" cy="70" r="16" fill="#fff"/>
+      <circle cx="142" cy="70" r="16" fill="#fff"/>
+      <text x="50" y="76" font-size="18" fill="#3a2440">★</text>
+      <text x="92" y="76" font-size="18" fill="#3a2440">★</text>
+      <text x="134" y="76" font-size="18" fill="#e85d4c">☆</text>
+      <circle cx="58" cy="130" r="16" fill="#fff"/>
+      <circle cx="100" cy="130" r="16" fill="#fff"/>
+      <circle cx="142" cy="130" r="16" fill="#fff"/>
+    `),
+  },
+  {
+    id: "next",
+    title: "Next",
+    category: "puzzle",
+    src: "games/next/",
+    tags: ["pattern", "sequence", "next", "puzzle"],
+    art: cover("c-next", ["#f4f7fb", "#d5e2f2"], `
+      <rect x="24" y="78" width="32" height="32" rx="8" fill="#e85d4c"/>
+      <rect x="64" y="78" width="32" height="32" rx="8" fill="#2f6bff"/>
+      <rect x="104" y="78" width="32" height="32" rx="8" fill="#e85d4c"/>
+      <rect x="144" y="78" width="32" height="32" rx="8" fill="none" stroke="#8aa0b8" stroke-width="4" stroke-dasharray="6 4"/>
+    `),
+  },
 ];
