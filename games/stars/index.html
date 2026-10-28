@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stars</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #1b1740;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px;
+        touch-action: none;
+      }
+      .hud { font-weight: 800; }
+      canvas { width: min(92vw, 70vh); height: min(120vw, 78vh); background: #241c55; border-radius: 16px; }
+      button {
+        border: 0;
+        background: #fff;
+        color: #1b1740;
+        font: inherit;
+        font-weight: 800;
+        border-radius: 999px;
+        padding: 14px 22px;
+        cursor: pointer;
+      }
+      button[hidden], .overlay[hidden] { display: none; }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 12px;
+        background: rgba(27, 23, 64, 0.72);
+        text-align: center;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Tip to catch stars</div>
+    <canvas id="board" width="360" height="520"></canvas>
+    <button id="tilt" type="button" hidden>Tilt to play</button>
+    <div class="overlay" id="over" hidden>
+      <p id="over-text"></p>
+      <button id="again" type="button">Play again</button>
+    </div>
+    <script>
+      const canvas = document.getElementById("board");
+      const ctx = canvas.getContext("2d");
+      const hud = document.getElementById("hud");
+      const tiltButton = document.getElementById("tilt");
+      const over = document.getElementById("over");
+      const overText = document.getElementById("over-text");
+      const basketW = 84;
+      let tiltX = 0;
+      let base = null;
+      let basketX = canvas.width / 2;
+      let stars = [];
+      let score = 0;
+      let misses = 0;
+      let alive = false;
+      let started = false;
+      let last = 0;
+
+      function listen() {
+        window.addEventListener("deviceorientation", (event) => {
+          if (typeof event.gamma !== "number") return;
+          if (!base) base = event.gamma;
+          tiltX = Math.max(-1, Math.min(1, (event.gamma - base) / 18));
+        });
+      }
+
+      function reset() {
+        basketX = canvas.width / 2;
+        stars = [];
+        score = 0;
+        misses = 0;
+        alive = true;
+        over.hidden = true;
+        hud.textContent = "Caught 0";
+      }
+
+      function tick() {
+        const target = canvas.width / 2 + tiltX * (canvas.width / 2 - basketW / 2 - 8);
+        basketX += (target - basketX) * 0.2;
+        if (Math.random() < 0.03) {
+          stars.push({ x: 20 + Math.random() * (canvas.width - 40), y: -12, r: 12 });
+        }
+        const basketTop = canvas.height - 48;
+        const left = basketX - basketW / 2;
+        const right = basketX + basketW / 2;
+        const kept = [];
+        for (const star of stars) {
+          star.y += 3.2 + score * 0.04;
+          const caught = star.y + star.r > basketTop && star.y < canvas.height - 20 && star.x > left && star.x < right;
+          if (caught) {
+            score += 1;
+            continue;
+          }
+          if (star.y > canvas.height) {
+            misses += 1;
+            continue;
+          }
+          kept.push(star);
+        }
+        stars = kept;
+        if (misses >= 3) {
+          alive = false;
+          hud.textContent = `Score ${score}`;
+          overText.textContent = `Score ${score}`;
+          over.hidden = false;
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#241c55";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffd23f";
+        for (const star of stars) {
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = "#f2f5f8";
+        ctx.fillRect(basketX - basketW / 2, canvas.height - 46, basketW, 18);
+      }
+
+      function frame(now) {
+        if (!started) return;
+        if (alive && now - last > 16) {
+          last = now;
+          tick();
+          if (alive) hud.textContent = `Caught ${score} · misses ${misses}`;
+        }
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function start() {
+        if (started) return;
+        started = true;
+        reset();
+        requestAnimationFrame(frame);
+      }
+
+      document.getElementById("again").addEventListener("click", reset);
+
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        tiltButton.hidden = false;
+        tiltButton.addEventListener("click", async () => {
+          try {
+            const state = await DeviceOrientationEvent.requestPermission();
+            if (state !== "granted") return;
+          } catch {
+            return;
+          }
+          tiltButton.hidden = true;
+          listen();
+          start();
+        });
+      } else {
+        listen();
+        start();
+      }
+    </script>
+  </body>
+</html>

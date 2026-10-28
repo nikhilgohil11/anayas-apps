@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stamps</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#ffe8f3, #e8f4ff);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        color: #2a2440;
+      }
+      .bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 10px;
+      }
+      .stamp, .wide {
+        border: 3px solid transparent;
+        background: #fff;
+        border-radius: 16px;
+        font: inherit;
+        font-size: 1.4rem;
+        padding: 6px 10px;
+        cursor: pointer;
+        box-shadow: 0 3px 0 rgba(60, 40, 80, 0.08);
+      }
+      .stamp.is-on { border-color: #2a2440; }
+      .wide { font-size: 0.95rem; font-weight: 800; border-radius: 999px; padding: 8px 14px; }
+      canvas { flex: 1; width: 100%; touch-action: none; background: #fff; cursor: crosshair; }
+    </style>
+  </head>
+  <body>
+    <div class="bar" id="bar">
+      <button class="wide" id="clear" type="button">Clear</button>
+      <button class="wide" id="undo" type="button">Undo</button>
+    </div>
+    <canvas id="paper"></canvas>
+    <script>
+      const stamps = ["⭐", "❤️", "🌸", "🦋", "🌈", "☀️", "🌙", "🍀", "🎵", "🐱", "🐶", "🐠"];
+      const sizes = [28, 42, 58];
+      const bar = document.getElementById("bar");
+      const canvas = document.getElementById("paper");
+      const ctx = canvas.getContext("2d");
+      let stamp = stamps[0];
+      let size = sizes[1];
+      let marks = [];
+
+      stamps.forEach((emoji, i) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "stamp" + (i === 0 ? " is-on" : "");
+        btn.textContent = emoji;
+        btn.addEventListener("click", () => {
+          stamp = emoji;
+          bar.querySelectorAll(".stamp").forEach((el) => el.classList.remove("is-on"));
+          btn.classList.add("is-on");
+        });
+        bar.appendChild(btn);
+      });
+
+      sizes.forEach((px, i) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "wide size" + (i === 1 ? " is-on" : "");
+        btn.textContent = i === 0 ? "S" : i === 1 ? "M" : "L";
+        btn.style.border = i === 1 ? "3px solid #2a2440" : "3px solid transparent";
+        btn.addEventListener("click", () => {
+          size = px;
+          bar.querySelectorAll(".size").forEach((el) => { el.style.borderColor = "transparent"; });
+          btn.style.borderColor = "#2a2440";
+        });
+        bar.appendChild(btn);
+      });
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * devicePixelRatio;
+        canvas.height = rect.height * devicePixelRatio;
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+        redraw();
+      }
+
+      function redraw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const m of marks) {
+          ctx.font = `${m.size}px system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(m.stamp, m.x, m.y);
+        }
+      }
+
+      function place(e) {
+        const rect = canvas.getBoundingClientRect();
+        const point = e.touches ? e.touches[0] : e;
+        marks.push({
+          stamp,
+          size,
+          x: point.clientX - rect.left,
+          y: point.clientY - rect.top,
+        });
+        redraw();
+      }
+
+      canvas.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        place(e);
+      });
+      document.getElementById("clear").addEventListener("click", () => { marks = []; redraw(); });
+      document.getElementById("undo").addEventListener("click", () => { marks.pop(); redraw(); });
+      window.addEventListener("resize", resize);
+      resize();
+    </script>
+  </body>
+</html>

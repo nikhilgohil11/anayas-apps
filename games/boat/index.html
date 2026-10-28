@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Boat</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0c4a6e;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px;
+        touch-action: none;
+      }
+      .hud { font-weight: 800; }
+      canvas { width: min(92vw, 70vh); height: min(120vw, 78vh); background: #1383b5; border-radius: 16px; }
+      button {
+        border: 0;
+        background: #fff;
+        color: #0c4a6e;
+        font: inherit;
+        font-weight: 800;
+        border-radius: 999px;
+        padding: 14px 22px;
+        cursor: pointer;
+      }
+      button[hidden], .overlay[hidden] { display: none; }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 12px;
+        background: rgba(12, 74, 110, 0.72);
+        text-align: center;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Tip left and right</div>
+    <canvas id="board" width="360" height="520"></canvas>
+    <button id="tilt" type="button" hidden>Tilt to play</button>
+    <div class="overlay" id="over" hidden>
+      <p id="over-text"></p>
+      <button id="again" type="button">Play again</button>
+    </div>
+    <script>
+      const canvas = document.getElementById("board");
+      const ctx = canvas.getContext("2d");
+      const hud = document.getElementById("hud");
+      const tiltButton = document.getElementById("tilt");
+      const over = document.getElementById("over");
+      const overText = document.getElementById("over-text");
+      let tiltX = 0;
+      let base = null;
+      let boatX = canvas.width / 2;
+      let rocks = [];
+      let distance = 0;
+      let alive = false;
+      let started = false;
+      let last = 0;
+
+      function listen() {
+        window.addEventListener("deviceorientation", (event) => {
+          if (typeof event.gamma !== "number") return;
+          if (!base) base = event.gamma;
+          tiltX = Math.max(-1, Math.min(1, (event.gamma - base) / 18));
+        });
+      }
+
+      function reset() {
+        boatX = canvas.width / 2;
+        rocks = [];
+        distance = 0;
+        alive = true;
+        over.hidden = true;
+        hud.textContent = "Distance 0";
+      }
+
+      function spawn() {
+        rocks.push({
+          x: 28 + Math.random() * (canvas.width - 56),
+          y: -24,
+          r: 16 + Math.random() * 12,
+        });
+      }
+
+      function tick() {
+        const speed = 3 + distance / 500;
+        const target = canvas.width / 2 + tiltX * (canvas.width / 2 - 36);
+        boatX += (target - boatX) * 0.18;
+        if (Math.random() < 0.035) spawn();
+        for (const rock of rocks) rock.y += speed;
+        rocks = rocks.filter((rock) => rock.y < canvas.height + 40);
+        const boatY = canvas.height - 70;
+        for (const rock of rocks) {
+          if (Math.hypot(rock.x - boatX, rock.y - boatY) < rock.r + 16) {
+            alive = false;
+            hud.textContent = `Distance ${distance}`;
+            overText.textContent = `Distance ${distance}`;
+            over.hidden = false;
+          }
+        }
+        if (alive) distance += 1;
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#1383b5";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#8fd4ef";
+        for (let y = (distance % 40) - 40; y < canvas.height; y += 40) {
+          ctx.fillRect(0, y, canvas.width, 8);
+        }
+        ctx.fillStyle = "#5c3b2e";
+        for (const rock of rocks) {
+          ctx.beginPath();
+          ctx.arc(rock.x, rock.y, rock.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        const boatY = canvas.height - 70;
+        ctx.fillStyle = "#f4f1ea";
+        ctx.beginPath();
+        ctx.moveTo(boatX, boatY - 22);
+        ctx.lineTo(boatX + 22, boatY + 16);
+        ctx.lineTo(boatX - 22, boatY + 16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#e85d4c";
+        ctx.fillRect(boatX - 3, boatY - 28, 6, 18);
+      }
+
+      function frame(now) {
+        if (!started) return;
+        if (alive && now - last > 16) {
+          last = now;
+          tick();
+          if (alive) hud.textContent = `Distance ${distance}`;
+        }
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function start() {
+        if (started) return;
+        started = true;
+        reset();
+        requestAnimationFrame(frame);
+      }
+
+      document.getElementById("again").addEventListener("click", reset);
+
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        tiltButton.hidden = false;
+        tiltButton.addEventListener("click", async () => {
+          try {
+            const state = await DeviceOrientationEvent.requestPermission();
+            if (state !== "granted") return;
+          } catch {
+            return;
+          }
+          tiltButton.hidden = true;
+          listen();
+          start();
+        });
+      } else {
+        listen();
+        start();
+      }
+    </script>
+  </body>
+</html>

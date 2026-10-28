@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mini Sudoku</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#eef3ff, #d8e4ff);
+        color: #1d2a4a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 14px;
+      }
+      .hud { font-weight: 800; }
+      .board {
+        width: min(340px, 92vw);
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        background: #1d2a4a;
+        border: 4px solid #1d2a4a;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .cell {
+        aspect-ratio: 1;
+        border: 0;
+        background: #fff;
+        font: inherit;
+        font-size: clamp(1.4rem, 6vw, 1.8rem);
+        font-weight: 800;
+        color: #1d2a4a;
+        cursor: pointer;
+        box-shadow: inset 0 0 0 1px #c5d0e8;
+      }
+      .cell:nth-child(4n) { box-shadow: inset -3px 0 0 #1d2a4a, inset 0 0 0 1px #c5d0e8; }
+      .cell:nth-child(n+5):nth-child(-n+8) { box-shadow: inset 0 -3px 0 #1d2a4a, inset 0 0 0 1px #c5d0e8; }
+      .cell:nth-child(8) { box-shadow: inset -3px -3px 0 #1d2a4a, inset 0 0 0 1px #c5d0e8; }
+      .cell.is-fixed { background: #edf2ff; cursor: default; }
+      .cell.is-on { background: #ffe56a; }
+      .cell.bad { color: #e85d4c; }
+      .keys { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+      .key, .wide {
+        border: 0; background: #fff; color: #1d2a4a; font: inherit; font-weight: 800;
+        border-radius: 14px; width: 48px; height: 48px; cursor: pointer;
+        box-shadow: 0 4px 0 rgba(40, 60, 100, 0.1);
+      }
+      .wide { width: auto; padding: 0 16px; border-radius: 999px; }
+      .win {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        background: rgba(20, 30, 60, 0.35);
+      }
+      .win[hidden] { display: none; }
+      .panel { background: #fff; border-radius: 24px; padding: 24px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Mini Sudoku · fill 1–4</div>
+    <div class="board" id="board"></div>
+    <div class="keys" id="keys"></div>
+    <button class="wide" id="new" type="button">New puzzle</button>
+    <div class="win" id="win" hidden>
+      <div class="panel">
+        <h1>You did it!</h1>
+        <button class="wide" id="again" type="button">Play again</button>
+      </div>
+    </div>
+    <script>
+      // Valid 4x4 shidoku solutions (2x2 boxes)
+      const solutions = [
+        [1,2,3,4, 3,4,1,2, 2,1,4,3, 4,3,2,1],
+        [1,3,2,4, 2,4,1,3, 3,1,4,2, 4,2,3,1],
+        [2,1,4,3, 4,3,2,1, 1,2,3,4, 3,4,1,2],
+        [3,4,1,2, 1,2,3,4, 4,3,2,1, 2,1,4,3],
+        [4,2,3,1, 3,1,4,2, 2,4,1,3, 1,3,2,4],
+      ];
+      const board = document.getElementById("board");
+      const keys = document.getElementById("keys");
+      const hud = document.getElementById("hud");
+      const win = document.getElementById("win");
+      let solution = [];
+      let puzzle = [];
+      let values = [];
+      let selected = -1;
+      let fixed = [];
+
+      [1, 2, 3, 4].forEach((n) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "key";
+        btn.textContent = n;
+        btn.addEventListener("click", () => put(n));
+        keys.appendChild(btn);
+      });
+      const erase = document.createElement("button");
+      erase.type = "button";
+      erase.className = "wide";
+      erase.textContent = "Erase";
+      erase.addEventListener("click", () => put(0));
+      keys.appendChild(erase);
+
+      function start() {
+        win.hidden = true;
+        solution = solutions[Math.floor(Math.random() * solutions.length)].slice();
+        // keep ~7–8 clues
+        const keep = new Set();
+        while (keep.size < 8) keep.add(Math.floor(Math.random() * 16));
+        puzzle = solution.map((n, i) => (keep.has(i) ? n : 0));
+        values = puzzle.slice();
+        fixed = puzzle.map((n) => n !== 0);
+        selected = -1;
+        paint();
+        hud.textContent = "Mini Sudoku · fill 1–4";
+      }
+
+      function paint() {
+        board.replaceChildren();
+        values.forEach((n, i) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cell";
+          if (fixed[i]) btn.classList.add("is-fixed");
+          if (i === selected) btn.classList.add("is-on");
+          if (n && !ok(i, n)) btn.classList.add("bad");
+          btn.textContent = n || "";
+          btn.addEventListener("click", () => {
+            if (fixed[i]) return;
+            selected = i;
+            paint();
+          });
+          board.appendChild(btn);
+        });
+      }
+
+      function box(i) {
+        const r = Math.floor(i / 4);
+        const c = i % 4;
+        return Math.floor(r / 2) * 2 + Math.floor(c / 2);
+      }
+
+      function ok(i, n) {
+        const r = Math.floor(i / 4);
+        const c = i % 4;
+        for (let j = 0; j < 16; j++) {
+          if (j === i || values[j] !== n) continue;
+          if (Math.floor(j / 4) === r || j % 4 === c || box(j) === box(i)) return false;
+        }
+        return true;
+      }
+
+      function put(n) {
+        if (selected < 0 || fixed[selected]) return;
+        values[selected] = n;
+        paint();
+        if (values.every((v, i) => v === solution[i])) {
+          hud.textContent = "Perfect!";
+          win.hidden = false;
+        }
+      }
+
+      document.getElementById("new").addEventListener("click", start);
+      document.getElementById("again").addEventListener("click", start);
+      start();
+    </script>
+  </body>
+</html>

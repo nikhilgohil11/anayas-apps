@@ -7,9 +7,11 @@ const CATEGORIES = [
   { id: "all", label: "All" },
   { id: "music", label: "Music" },
   { id: "puzzle", label: "Puzzle" },
+  { id: "words", label: "Words" },
   { id: "arcade", label: "Arcade" },
   { id: "draw", label: "Draw" },
   { id: "2player", label: "2 Player" },
+  { id: "tilt", label: "Tilt" },
 ];
 
 const GAMES = [
@@ -304,6 +306,153 @@ const GAMES = [
       <rect x="64" y="78" width="32" height="32" rx="8" fill="#2f6bff"/>
       <rect x="104" y="78" width="32" height="32" rx="8" fill="#e85d4c"/>
       <rect x="144" y="78" width="32" height="32" rx="8" fill="none" stroke="#8aa0b8" stroke-width="4" stroke-dasharray="6 4"/>
+    `),
+  },
+  {
+    id: "marble",
+    title: "Marble",
+    category: "tilt",
+    src: "games/marble/",
+    tags: ["marble", "maze", "tilt", "gyroscope"],
+    art: cover("c-marble", ["#16324f", "#10243a"], `
+      <path d="M40 40h50v30H70v30h50V70h40v30H90v30h70v30H40V40z" fill="none" stroke="#d7e6f5" stroke-width="8"/>
+      <circle cx="58" cy="58" r="12" fill="#f2f5f8"/>
+      <circle cx="150" cy="150" r="8" fill="#ffd23f"/>
+    `),
+  },
+  {
+    id: "boat",
+    title: "Boat",
+    category: "tilt",
+    src: "games/boat/",
+    tags: ["boat", "river", "tilt", "gyroscope"],
+    art: cover("c-boat", ["#1383b5", "#0c4a6e"], `
+      <path d="M100 48 L132 130 L68 130 Z" fill="#f4f1ea"/>
+      <rect x="96" y="36" width="8" height="28" fill="#e85d4c"/>
+      <circle cx="48" cy="150" r="14" fill="#5c3b2e"/>
+      <circle cx="156" cy="88" r="12" fill="#5c3b2e"/>
+    `),
+  },
+  {
+    id: "stars",
+    title: "Stars",
+    category: "tilt",
+    src: "games/stars/",
+    tags: ["stars", "catch", "tilt", "gyroscope"],
+    art: cover("c-stars", ["#241c55", "#1b1740"], `
+      <circle cx="58" cy="52" r="10" fill="#ffd23f"/>
+      <circle cx="120" cy="78" r="8" fill="#ffd23f"/>
+      <circle cx="150" cy="46" r="7" fill="#ffd23f"/>
+      <rect x="62" y="140" width="76" height="16" rx="6" fill="#f2f5f8"/>
+    `),
+  },
+  {
+    id: "stamps",
+    title: "Stamps",
+    category: "draw",
+    src: "games/stamps/",
+    tags: ["stamp", "stickers", "art", "draw", "emoji"],
+    art: cover("c-stamps", ["#ffe8f3", "#c9e4ff"], `
+      <circle cx="70" cy="78" r="34" fill="#fff"/>
+      <text x="56" y="90" font-size="36">⭐</text>
+      <circle cx="130" cy="118" r="28" fill="#fff"/>
+      <text x="116" y="128" font-size="28">🌸</text>
+      <circle cx="140" cy="58" r="22" fill="#fff"/>
+      <text x="128" y="66" font-size="22">🦋</text>
+    `),
+  },
+  {
+    id: "paintnum",
+    title: "Paint Numbers",
+    category: "draw",
+    size: "lg",
+    src: "games/paintnum/",
+    tags: ["paint", "color", "numbers", "art", "draw", "coloring"],
+    art: cover("c-paintnum", ["#fff6d8", "#ffd6e8"], `
+      <rect x="36" y="36" width="48" height="48" rx="10" fill="#e85d4c"/>
+      <rect x="92" y="36" width="48" height="48" rx="10" fill="#f4f0ea"/>
+      <text x="108" y="68" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#6a6078">2</text>
+      <rect x="36" y="92" width="48" height="48" rx="10" fill="#f4f0ea"/>
+      <text x="52" y="124" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#6a6078">3</text>
+      <rect x="92" y="92" width="48" height="48" rx="10" fill="#2f6bff"/>
+      <circle cx="158" cy="70" r="18" fill="#6ab04c"/>
+      <text x="151" y="77" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#fff">3</text>
+    `),
+  },
+  {
+    id: "mirror",
+    title: "Mirror Draw",
+    category: "draw",
+    src: "games/mirror/",
+    tags: ["mirror", "symmetry", "draw", "art", "reflect"],
+    art: cover("c-mirror", ["#e8fff4", "#dce8ff"], `
+      <path d="M100 24v152" stroke="#8aa0b8" stroke-width="4" stroke-dasharray="8 8"/>
+      <path d="M42 70c18-28 40-8 48 20" fill="none" stroke="#e85d4c" stroke-width="10" stroke-linecap="round"/>
+      <path d="M158 70c-18-28-40-8-48 20" fill="none" stroke="#e85d4c" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 130c20 18 36 6 46-16" fill="none" stroke="#2f6bff" stroke-width="8" stroke-linecap="round"/>
+      <path d="M152 130c-20 18-36 6-46-16" fill="none" stroke="#2f6bff" stroke-width="8" stroke-linecap="round"/>
+    `),
+  },
+  {
+    id: "sudoku",
+    title: "Mini Sudoku",
+    category: "puzzle",
+    src: "games/sudoku/",
+    tags: ["sudoku", "numbers", "logic", "puzzle", "grid"],
+    art: cover("c-sudoku", ["#eef3ff", "#b8c9f0"], `
+      <rect x="40" y="40" width="120" height="120" rx="14" fill="#fff"/>
+      <path d="M100 40v120M40 100h120" stroke="#1d2a4a" stroke-width="5"/>
+      <path d="M70 40v120M130 40v120M40 70h120M40 130h120" stroke="#c5d0e8" stroke-width="2"/>
+      <text x="52" y="66" font-size="20" font-family="Arial, sans-serif" font-weight="700" fill="#1d2a4a">1</text>
+      <text x="112" y="96" font-size="20" font-family="Arial, sans-serif" font-weight="700" fill="#1d2a4a">3</text>
+      <text x="142" y="156" font-size="20" font-family="Arial, sans-serif" font-weight="700" fill="#1d2a4a">2</text>
+    `),
+  },
+  {
+    id: "connect",
+    title: "Connect",
+    category: "puzzle",
+    src: "games/connect/",
+    tags: ["connect", "flow", "logic", "puzzle", "path", "colors"],
+    art: cover("c-connect", ["#1a2040", "#2a1850"], `
+      <circle cx="52" cy="52" r="16" fill="#ff5d73"/>
+      <circle cx="148" cy="148" r="16" fill="#ff5d73"/>
+      <path d="M52 52h40v56h56v40" fill="none" stroke="#ff5d73" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+      <circle cx="148" cy="52" r="16" fill="#3ecf8e"/>
+      <circle cx="52" cy="148" r="16" fill="#3ecf8e"/>
+      <path d="M148 52v40H92v56H52" fill="none" stroke="#3ecf8e" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+    `),
+  },
+  {
+    id: "wordsearch",
+    title: "Word Search",
+    category: "words",
+    size: "lg",
+    src: "games/wordsearch/",
+    tags: ["word", "search", "letters", "find", "words", "puzzle"],
+    art: cover("c-wordsearch", ["#fff4e0", "#ffc98a"], `
+      <rect x="36" y="36" width="128" height="128" rx="16" fill="#fff"/>
+      <text x="48" y="70" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#3a2a18">C A T S</text>
+      <text x="48" y="100" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#3a2a18">O G X U</text>
+      <text x="48" y="130" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#3a2a18">D O G N</text>
+      <rect x="44" y="108" width="78" height="28" rx="8" fill="#ffd23f" opacity=".55"/>
+    `),
+  },
+  {
+    id: "scramble",
+    title: "Word Scramble",
+    category: "words",
+    src: "games/scramble/",
+    tags: ["scramble", "anagram", "word", "letters", "unscramble", "words"],
+    art: cover("c-scramble", ["#e4f7ff", "#9ec9f0"], `
+      <rect x="28" y="70" width="40" height="50" rx="10" fill="#fff"/>
+      <rect x="76" y="70" width="40" height="50" rx="10" fill="#fff"/>
+      <rect x="124" y="70" width="40" height="50" rx="10" fill="#fff"/>
+      <text x="40" y="104" font-size="24" font-family="Arial, sans-serif" font-weight="700" fill="#2f6bff">T</text>
+      <text x="88" y="104" font-size="24" font-family="Arial, sans-serif" font-weight="700" fill="#2f6bff">A</text>
+      <text x="136" y="104" font-size="24" font-family="Arial, sans-serif" font-weight="700" fill="#2f6bff">C</text>
+      <path d="M48 150h104" stroke="#2f6bff" stroke-width="4" stroke-linecap="round"/>
+      <path d="M140 142l12 8-12 8" fill="none" stroke="#2f6bff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
     `),
   },
 ];

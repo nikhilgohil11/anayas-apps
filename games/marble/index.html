@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marble</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #10243a;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px;
+        touch-action: none;
+      }
+      .hud { font-weight: 800; }
+      canvas { width: min(92vw, 70vh); height: min(92vw, 70vh); background: #16324f; border-radius: 16px; }
+      .tilt, .again {
+        border: 0;
+        background: #fff;
+        color: #10243a;
+        font: inherit;
+        font-weight: 800;
+        border-radius: 999px;
+        padding: 14px 22px;
+        cursor: pointer;
+      }
+      .tilt[hidden], .overlay[hidden] { display: none; }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 12px;
+        background: rgba(16, 36, 58, 0.72);
+        text-align: center;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Tip to roll</div>
+    <canvas id="board" width="420" height="420"></canvas>
+    <button class="tilt" id="tilt" type="button" hidden>Tilt to play</button>
+    <script>
+      const canvas = document.getElementById("board");
+      const ctx = canvas.getContext("2d");
+      const hud = document.getElementById("hud");
+      const tiltButton = document.getElementById("tilt");
+      let level = 1;
+      let cols = 5;
+      let cells = [];
+      let px = 0;
+      let py = 0;
+      let vx = 0;
+      let vy = 0;
+      let tiltX = 0;
+      let tiltY = 0;
+      let base = null;
+      let running = false;
+      let clearing = false;
+
+      function listen() {
+        window.addEventListener("deviceorientation", (event) => {
+          if (typeof event.gamma !== "number" || typeof event.beta !== "number") return;
+          if (!base) base = { x: event.gamma, y: event.beta };
+          tiltX = Math.max(-1, Math.min(1, (event.gamma - base.x) / 18));
+          tiltY = Math.max(-1, Math.min(1, (event.beta - base.y) / 18));
+        });
+      }
+
+      function build() {
+        cols = Math.min(11, 5 + (level - 1) * 2);
+        cells = Array.from({ length: cols * cols }, () => ({ n: true, e: true, s: true, w: true, seen: false }));
+        const stack = [0];
+        cells[0].seen = true;
+        while (stack.length) {
+          const current = stack[stack.length - 1];
+          const row = Math.floor(current / cols);
+          const col = current % cols;
+          const next = [];
+          if (row > 0 && !cells[current - cols].seen) next.push(["n", current - cols]);
+          if (col < cols - 1 && !cells[current + 1].seen) next.push(["e", current + 1]);
+          if (row < cols - 1 && !cells[current + cols].seen) next.push(["s", current + cols]);
+          if (col > 0 && !cells[current - 1].seen) next.push(["w", current - 1]);
+          if (!next.length) {
+            stack.pop();
+            continue;
+          }
+          const [dir, dest] = next[Math.floor(Math.random() * next.length)];
+          const back = { n: "s", s: "n", e: "w", w: "e" }[dir];
+          cells[current][dir] = false;
+          cells[dest][back] = false;
+          cells[dest].seen = true;
+          stack.push(dest);
+        }
+        const size = canvas.width / cols;
+        px = size / 2;
+        py = size / 2;
+        vx = 0;
+        vy = 0;
+        clearing = false;
+        hud.textContent = `Level ${level}`;
+      }
+
+      function slide(axis) {
+        const size = canvas.width / cols;
+        const radius = size * 0.22;
+        if (axis === "x") px += vx;
+        else py += vy;
+        const col = Math.min(cols - 1, Math.max(0, Math.floor(px / size)));
+        const row = Math.min(cols - 1, Math.max(0, Math.floor(py / size)));
+        const cell = cells[row * cols + col];
+        const left = col * size;
+        const top = row * size;
+        if (cell.w && px - radius < left) {
+          px = left + radius;
+          vx = 0;
+        }
+        if (cell.e && px + radius > left + size) {
+          px = left + size - radius;
+          vx = 0;
+        }
+        if (cell.n && py - radius < top) {
+          py = top + radius;
+          vy = 0;
+        }
+        if (cell.s && py + radius > top + size) {
+          py = top + size - radius;
+          vy = 0;
+        }
+      }
+
+      function frame() {
+        if (!running) return;
+        vx = (vx + tiltX * 0.85) * 0.86;
+        vy = (vy + tiltY * 0.85) * 0.86;
+        slide("x");
+        slide("y");
+        const size = canvas.width / cols;
+        const goal = cols * cols - 1;
+        const gx = (goal % cols) * size + size / 2;
+        const gy = Math.floor(goal / cols) * size + size / 2;
+        if (!clearing && Math.hypot(px - gx, py - gy) < size * 0.34) {
+          clearing = true;
+          hud.textContent = `Level ${level} cleared`;
+          setTimeout(() => {
+            level += 1;
+            build();
+          }, 500);
+        }
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function draw() {
+        const size = canvas.width / cols;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#16324f";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#d7e6f5";
+        ctx.lineWidth = 4;
+        cells.forEach((cell, index) => {
+          const x = (index % cols) * size;
+          const y = Math.floor(index / cols) * size;
+          ctx.beginPath();
+          if (cell.n) { ctx.moveTo(x, y); ctx.lineTo(x + size, y); }
+          if (cell.e) { ctx.moveTo(x + size, y); ctx.lineTo(x + size, y + size); }
+          if (cell.s) { ctx.moveTo(x, y + size); ctx.lineTo(x + size, y + size); }
+          if (cell.w) { ctx.moveTo(x, y); ctx.lineTo(x, y + size); }
+          ctx.stroke();
+        });
+        const goal = cols * cols - 1;
+        ctx.fillStyle = "#ffd23f";
+        ctx.beginPath();
+        ctx.arc((goal % cols) * size + size / 2, Math.floor(goal / cols) * size + size / 2, size * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#f2f5f8";
+        ctx.beginPath();
+        ctx.arc(px, py, size * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function start() {
+        if (running) return;
+        running = true;
+        build();
+        requestAnimationFrame(frame);
+      }
+
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        tiltButton.hidden = false;
+        tiltButton.addEventListener("click", async () => {
+          try {
+            const state = await DeviceOrientationEvent.requestPermission();
+            if (state !== "granted") return;
+          } catch {
+            return;
+          }
+          tiltButton.hidden = true;
+          listen();
+          start();
+        });
+      } else {
+        listen();
+        start();
+      }
+    </script>
+  </body>
+</html>

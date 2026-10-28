@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connect</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#1a2040, #2a1850);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 14px;
+      }
+      .hud { font-weight: 800; text-align: center; }
+      .grid {
+        width: min(360px, 92vw);
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+        background: rgba(255,255,255,.06);
+        padding: 10px;
+        border-radius: 18px;
+      }
+      .cell {
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 12px;
+        background: #2c3458;
+        cursor: pointer;
+        position: relative;
+      }
+      .cell.dot::after {
+        content: "";
+        position: absolute;
+        inset: 22%;
+        border-radius: 50%;
+        background: var(--c);
+        box-shadow: 0 0 12px var(--c);
+      }
+      .cell.path { background: color-mix(in srgb, var(--c) 55%, #2c3458); }
+      .wide {
+        border: 0; background: #fff; color: #1a2040; font: inherit; font-weight: 800;
+        border-radius: 999px; padding: 10px 16px; cursor: pointer;
+      }
+      .win {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        background: rgba(10, 12, 30, 0.45);
+      }
+      .win[hidden] { display: none; }
+      .panel { background: #fff; color: #1a2040; border-radius: 24px; padding: 24px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Connect matching colors · Level 1</div>
+    <div class="grid" id="grid"></div>
+    <button class="wide" id="reset" type="button">Restart</button>
+    <div class="win" id="win" hidden>
+      <div class="panel">
+        <h1>Connected!</h1>
+        <button class="wide" id="next" type="button">Next level</button>
+      </div>
+    </div>
+    <script>
+      const SIZE = 5;
+      const COLORS = {
+        r: "#ff5d73",
+        g: "#3ecf8e",
+        b: "#4d7cff",
+        y: "#ffd23f",
+        p: "#e056c1",
+      };
+      // levels: map of color -> [startIdx, endIdx]
+      const levels = [
+        { r: [0, 4], g: [20, 24], b: [2, 22] },
+        { r: [0, 24], g: [4, 20], y: [2, 22] },
+        { r: [5, 9], g: [0, 20], b: [4, 24], y: [2, 12] },
+        { r: [0, 12], g: [4, 8], b: [16, 24], p: [1, 23], y: [3, 21] },
+      ];
+      const grid = document.getElementById("grid");
+      const hud = document.getElementById("hud");
+      const win = document.getElementById("win");
+      let level = 0;
+      let pairs = {};
+      let paths = {}; // color -> [indices]
+      let drawing = null; // { color, cells: [] }
+      let occupied = {}; // idx -> color
+
+      function idx(r, c) { return r * SIZE + c; }
+      function neighbors(i) {
+        const r = Math.floor(i / SIZE);
+        const c = i % SIZE;
+        const out = [];
+        if (r > 0) out.push(idx(r - 1, c));
+        if (r < SIZE - 1) out.push(idx(r + 1, c));
+        if (c > 0) out.push(idx(r, c - 1));
+        if (c < SIZE - 1) out.push(idx(r, c + 1));
+        return out;
+      }
+
+      function startLevel() {
+        win.hidden = true;
+        pairs = levels[level % levels.length];
+        paths = {};
+        occupied = {};
+        drawing = null;
+        for (const [color, [a, b]] of Object.entries(pairs)) {
+          occupied[a] = color;
+          occupied[b] = color;
+        }
+        hud.textContent = `Connect matching colors · Level ${level + 1}`;
+        paint();
+      }
+
+      function paint() {
+        grid.replaceChildren();
+        for (let i = 0; i < SIZE * SIZE; i++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cell";
+          const color = occupied[i];
+          if (color) {
+            btn.style.setProperty("--c", COLORS[color]);
+            const isDot = Object.values(pairs).some(([a, b]) => a === i || b === i);
+            if (isDot) btn.classList.add("dot");
+            else btn.classList.add("path");
+          }
+          btn.addEventListener("pointerdown", (e) => begin(i, e));
+          btn.addEventListener("pointerenter", () => extend(i));
+          btn.addEventListener("pointerup", end);
+          grid.appendChild(btn);
+        }
+      }
+
+      function clearColor(color) {
+        for (const i of Object.keys(occupied)) {
+          const n = Number(i);
+          const isDot = Object.values(pairs).some(([a, b]) => a === n || b === n);
+          if (occupied[n] === color && !isDot) delete occupied[n];
+        }
+        delete paths[color];
+      }
+
+      function begin(i, e) {
+        e.preventDefault();
+        const color = occupied[i];
+        if (!color) return;
+        const [a, b] = pairs[color];
+        if (i !== a && i !== b && !paths[color]) return;
+        clearColor(color);
+        occupied[a] = color;
+        occupied[b] = color;
+        drawing = { color, cells: [i] };
+        paths[color] = [i];
+        paint();
+        grid.setPointerCapture?.(e.pointerId);
+      }
+
+      function extend(i) {
+        if (!drawing) return;
+        const last = drawing.cells[drawing.cells.length - 1];
+        if (i === last) return;
+        if (!neighbors(last).includes(i)) return;
+        const [a, b] = pairs[drawing.color];
+        const other = drawing.cells[0] === a ? b : a;
+        // allow stepping on empty or own end
+        if (occupied[i] && occupied[i] !== drawing.color) return;
+        if (occupied[i] === drawing.color && i !== other && !drawing.cells.includes(i)) return;
+        // trim if revisiting
+        const revisit = drawing.cells.indexOf(i);
+        if (revisit >= 0) {
+          for (const cut of drawing.cells.slice(revisit + 1)) {
+            if (cut !== a && cut !== b) delete occupied[cut];
+          }
+          drawing.cells = drawing.cells.slice(0, revisit + 1);
+          paths[drawing.color] = drawing.cells.slice();
+          paint();
+          return;
+        }
+        drawing.cells.push(i);
+        occupied[i] = drawing.color;
+        paths[drawing.color] = drawing.cells.slice();
+        paint();
+        if (i === other) {
+          drawing = null;
+          checkWin();
+        }
+      }
+
+      function end() { drawing = null; }
+
+      function checkWin() {
+        const done = Object.keys(pairs).every((color) => {
+          const path = paths[color];
+          if (!path || path.length < 2) return false;
+          const [a, b] = pairs[color];
+          const ends = [path[0], path[path.length - 1]].sort().join();
+          return ends === [a, b].sort().join();
+        });
+        // also every cell should ideally be filled for harder feel, but only require pairs connected
+        if (done) win.hidden = false;
+      }
+
+      document.getElementById("reset").addEventListener("click", startLevel);
+      document.getElementById("next").addEventListener("click", () => {
+        level += 1;
+        startLevel();
+      });
+      // pointer enter doesn't fire well while dragging on buttons — use move over grid
+      grid.addEventListener("pointermove", (e) => {
+        if (!drawing) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        if (!el || !el.classList.contains("cell")) return;
+        const i = [...grid.children].indexOf(el);
+        if (i >= 0) extend(i);
+      });
+      startLevel();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Word Search</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#fff4e0, #ffe0c2);
+        color: #3a2a18;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px;
+      }
+      .hud { font-weight: 800; text-align: center; }
+      .words {
+        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 420px;
+      }
+      .word {
+        background: #fff; border-radius: 999px; padding: 6px 12px; font-weight: 800;
+        box-shadow: 0 3px 0 rgba(80, 50, 20, 0.08);
+      }
+      .word.found { background: #d8ffb0; text-decoration: line-through; opacity: .7; }
+      .board {
+        width: min(380px, 94vw);
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 3px;
+        background: #fff;
+        padding: 8px;
+        border-radius: 16px;
+        user-select: none;
+        touch-action: none;
+        box-shadow: 0 10px 0 rgba(80, 50, 20, 0.08);
+      }
+      .cell {
+        aspect-ratio: 1;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: clamp(0.85rem, 3.4vw, 1.1rem);
+        background: #fff8ef;
+        cursor: pointer;
+      }
+      .cell.sel { background: #ffd23f; }
+      .cell.hit { background: #b8f0a8; color: #1f4a20; }
+      .wide {
+        border: 0; background: #3a2a18; color: #fff; font: inherit; font-weight: 800;
+        border-radius: 999px; padding: 10px 16px; cursor: pointer;
+      }
+      .win {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        background: rgba(60, 40, 20, 0.35);
+      }
+      .win[hidden] { display: none; }
+      .panel { background: #fff; border-radius: 24px; padding: 24px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Find the words</div>
+    <div class="words" id="words"></div>
+    <div class="board" id="board"></div>
+    <button class="wide" id="new" type="button">New puzzle</button>
+    <div class="win" id="win" hidden>
+      <div class="panel">
+        <h1>All found!</h1>
+        <button class="wide" id="again" type="button">Play again</button>
+      </div>
+    </div>
+    <script>
+      const SIZE = 8;
+      const PACKS = [
+        ["CAT", "DOG", "SUN", "MOON", "STAR", "FISH"],
+        ["TREE", "BIRD", "LEAF", "RAIN", "WIND", "FROG"],
+        ["CAKE", "MILK", "BREAD", "APPLE", "JUICE", "HONEY"],
+        ["BLUE", "GREEN", "PINK", "GOLD", "RED", "TEAL"],
+      ];
+      const DIRS = [
+        [0, 1], [1, 0], [1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1], [-1, 1],
+      ];
+      const board = document.getElementById("board");
+      const wordsEl = document.getElementById("words");
+      const hud = document.getElementById("hud");
+      const win = document.getElementById("win");
+      let grid = [];
+      let words = [];
+      let found = new Set();
+      let placements = {}; // word -> [{r,c}]
+      let selecting = false;
+      let path = [];
+
+      function emptyGrid() {
+        return Array.from({ length: SIZE }, () => Array(SIZE).fill(""));
+      }
+
+      function canPlace(g, word, r, c, dr, dc) {
+        for (let i = 0; i < word.length; i++) {
+          const rr = r + dr * i;
+          const cc = c + dc * i;
+          if (rr < 0 || cc < 0 || rr >= SIZE || cc >= SIZE) return false;
+          if (g[rr][cc] && g[rr][cc] !== word[i]) return false;
+        }
+        return true;
+      }
+
+      function placeWord(g, word) {
+        const tries = [];
+        for (const [dr, dc] of DIRS) {
+          for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+              if (canPlace(g, word, r, c, dr, dc)) tries.push([r, c, dr, dc]);
+            }
+          }
+        }
+        if (!tries.length) return null;
+        const [r, c, dr, dc] = tries[Math.floor(Math.random() * tries.length)];
+        const cells = [];
+        for (let i = 0; i < word.length; i++) {
+          const rr = r + dr * i;
+          const cc = c + dc * i;
+          g[rr][cc] = word[i];
+          cells.push({ r: rr, c: cc });
+        }
+        return cells;
+      }
+
+      function fillRandom(g) {
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            if (!g[r][c]) g[r][c] = letters[Math.floor(Math.random() * letters.length)];
+          }
+        }
+      }
+
+      function start() {
+        win.hidden = true;
+        found = new Set();
+        placements = {};
+        words = PACKS[Math.floor(Math.random() * PACKS.length)].slice();
+        grid = emptyGrid();
+        const order = words.slice().sort((a, b) => b.length - a.length);
+        for (const word of order) {
+          const cells = placeWord(grid, word);
+          if (cells) placements[word] = cells;
+        }
+        words = words.filter((w) => placements[w]);
+        fillRandom(grid);
+        path = [];
+        paintWords();
+        paintBoard();
+        hud.textContent = `Find ${words.length} words`;
+      }
+
+      function paintWords() {
+        wordsEl.replaceChildren();
+        words.forEach((w) => {
+          const el = document.createElement("span");
+          el.className = "word" + (found.has(w) ? " found" : "");
+          el.textContent = w;
+          wordsEl.appendChild(el);
+        });
+      }
+
+      function cellIndex(r, c) { return r * SIZE + c; }
+
+      function paintBoard() {
+        board.replaceChildren();
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            const div = document.createElement("div");
+            div.className = "cell";
+            div.textContent = grid[r][c];
+            div.dataset.r = r;
+            div.dataset.c = c;
+            const inFound = [...found].some((w) =>
+              placements[w].some((p) => p.r === r && p.c === c)
+            );
+            if (inFound) div.classList.add("hit");
+            if (path.some((p) => p.r === r && p.c === c)) div.classList.add("sel");
+            board.appendChild(div);
+          }
+        }
+      }
+
+      function atPoint(x, y) {
+        const el = document.elementFromPoint(x, y);
+        if (!el || !el.classList.contains("cell")) return null;
+        return { r: Number(el.dataset.r), c: Number(el.dataset.c) };
+      }
+
+      function sameLine(cells) {
+        if (cells.length < 2) return true;
+        const dr = Math.sign(cells[1].r - cells[0].r);
+        const dc = Math.sign(cells[1].c - cells[0].c);
+        for (let i = 1; i < cells.length; i++) {
+          const er = cells[0].r + dr * i;
+          const ec = cells[0].c + dc * i;
+          if (cells[i].r !== er || cells[i].c !== ec) return false;
+        }
+        return true;
+      }
+
+      function finishSelect() {
+        selecting = false;
+        if (path.length < 2) { path = []; paintBoard(); return; }
+        if (!sameLine(path)) { path = []; paintBoard(); return; }
+        const text = path.map((p) => grid[p.r][p.c]).join("");
+        const rev = text.split("").reverse().join("");
+        const hit = words.find((w) => !found.has(w) && (w === text || w === rev));
+        if (hit) {
+          found.add(hit);
+          paintWords();
+          hud.textContent = `Found ${found.size} / ${words.length}`;
+          if (found.size === words.length) win.hidden = false;
+        }
+        path = [];
+        paintBoard();
+      }
+
+      board.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        selecting = true;
+        const cell = atPoint(e.clientX, e.clientY);
+        path = cell ? [cell] : [];
+        paintBoard();
+        board.setPointerCapture?.(e.pointerId);
+      });
+      board.addEventListener("pointermove", (e) => {
+        if (!selecting) return;
+        const cell = atPoint(e.clientX, e.clientY);
+        if (!cell) return;
+        const last = path[path.length - 1];
+        if (last && last.r === cell.r && last.c === cell.c) return;
+        // only grow in a straight line from start
+        const next = [...path];
+        // if revisiting earlier cell, trim
+        const idx = next.findIndex((p) => p.r === cell.r && p.c === cell.c);
+        if (idx >= 0) next.length = idx + 1;
+        else next.push(cell);
+        if (!sameLine(next)) return;
+        path = next;
+        paintBoard();
+      });
+      board.addEventListener("pointerup", finishSelect);
+      board.addEventListener("pointercancel", finishSelect);
+
+      document.getElementById("new").addEventListener("click", start);
+      document.getElementById("again").addEventListener("click", start);
+      start();
+    </script>
+  </body>
+</html>

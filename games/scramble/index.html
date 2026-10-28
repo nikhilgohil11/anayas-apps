@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Word Scramble</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#e4f7ff, #d4e8ff);
+        color: #1c2a40;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 16px;
+      }
+      .hud { font-weight: 800; text-align: center; }
+      .hint {
+        background: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 700;
+        box-shadow: 0 3px 0 rgba(40, 60, 100, 0.08);
+      }
+      .slots, .tray {
+        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 56px;
+      }
+      .slot, .tile {
+        width: 48px; height: 56px; border-radius: 12px; font: inherit; font-size: 1.4rem;
+        font-weight: 800; display: grid; place-items: center;
+      }
+      .slot {
+        background: rgba(255,255,255,.55); border: 2px dashed #8aa0b8; color: #1c2a40;
+      }
+      .slot.filled { border-style: solid; background: #fff; border-color: #2f6bff; }
+      .tile {
+        border: 0; background: #fff; cursor: pointer;
+        box-shadow: 0 5px 0 rgba(40, 60, 100, 0.12);
+      }
+      .tile:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(40, 60, 100, 0.12); }
+      .tile.used { visibility: hidden; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+      .wide {
+        border: 0; background: #2f6bff; color: #fff; font: inherit; font-weight: 800;
+        border-radius: 999px; padding: 10px 16px; cursor: pointer;
+      }
+      .wide.ghost { background: #fff; color: #1c2a40; }
+      .win {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        background: rgba(20, 40, 70, 0.35);
+      }
+      .win[hidden] { display: none; }
+      .panel { background: #fff; border-radius: 24px; padding: 24px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Unscramble the word · 0</div>
+    <div class="hint" id="hint"></div>
+    <div class="slots" id="slots"></div>
+    <div class="tray" id="tray"></div>
+    <div class="actions">
+      <button class="wide ghost" id="shuffle" type="button">Shuffle</button>
+      <button class="wide ghost" id="clear" type="button">Clear</button>
+      <button class="wide" id="skip" type="button">Skip</button>
+    </div>
+    <div class="win" id="win" hidden>
+      <div class="panel">
+        <h1 id="winText">Nice!</h1>
+        <button class="wide" id="again" type="button">Next word</button>
+      </div>
+    </div>
+    <script>
+      const BANK = [
+        { word: "CAT", hint: "Says meow" },
+        { word: "DOG", hint: "Wags its tail" },
+        { word: "SUN", hint: "Bright in the sky" },
+        { word: "STAR", hint: "Twinkles at night" },
+        { word: "FISH", hint: "Swims in water" },
+        { word: "BIRD", hint: "Has feathers" },
+        { word: "TREE", hint: "Has leaves and a trunk" },
+        { word: "CAKE", hint: "Birthday treat" },
+        { word: "BOOK", hint: "You read it" },
+        { word: "MOON", hint: "Glows at night" },
+        { word: "FROG", hint: "Hops and ribbits" },
+        { word: "APPLE", hint: "Red fruit" },
+        { word: "HOUSE", hint: "Where you live" },
+        { word: "TRAIN", hint: "Runs on tracks" },
+        { word: "MUSIC", hint: "Songs and notes" },
+        { word: "HAPPY", hint: "A big smile feeling" },
+        { word: "CLOUD", hint: "Soft in the sky" },
+        { word: "SMILE", hint: "What a happy face does" },
+      ];
+      const slotsEl = document.getElementById("slots");
+      const trayEl = document.getElementById("tray");
+      const hintEl = document.getElementById("hint");
+      const hud = document.getElementById("hud");
+      const win = document.getElementById("win");
+      let score = 0;
+      let answer = "";
+      let slots = [];
+      let tray = [];
+
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      function start() {
+        win.hidden = true;
+        const item = BANK[Math.floor(Math.random() * BANK.length)];
+        answer = item.word;
+        hintEl.textContent = item.hint;
+        slots = Array(answer.length).fill(null);
+        let letters = answer.split("");
+        // ensure scramble differs from answer
+        let scrambled = shuffle(letters);
+        let guard = 0;
+        while (scrambled.join("") === answer && answer.length > 1 && guard++ < 20) {
+          scrambled = shuffle(letters);
+        }
+        tray = scrambled.map((ch, i) => ({ ch, id: i, used: false }));
+        paint();
+        hud.textContent = `Unscramble the word · ${score}`;
+      }
+
+      function paint() {
+        slotsEl.replaceChildren();
+        slots.forEach((tile, i) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "slot" + (tile ? " filled" : "");
+          btn.textContent = tile ? tile.ch : "";
+          btn.addEventListener("click", () => popSlot(i));
+          slotsEl.appendChild(btn);
+        });
+        trayEl.replaceChildren();
+        tray.forEach((tile) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tile" + (tile.used ? " used" : "");
+          btn.textContent = tile.ch;
+          btn.disabled = tile.used;
+          btn.addEventListener("click", () => pick(tile.id));
+          trayEl.appendChild(btn);
+        });
+      }
+
+      function pick(id) {
+        const tile = tray.find((t) => t.id === id);
+        if (!tile || tile.used) return;
+        const empty = slots.findIndex((s) => !s);
+        if (empty < 0) return;
+        tile.used = true;
+        slots[empty] = tile;
+        paint();
+        check();
+      }
+
+      function popSlot(i) {
+        const tile = slots[i];
+        if (!tile) return;
+        tile.used = false;
+        slots[i] = null;
+        paint();
+      }
+
+      function check() {
+        if (slots.some((s) => !s)) return;
+        const guess = slots.map((s) => s.ch).join("");
+        if (guess === answer) {
+          score += 1;
+          document.getElementById("winText").textContent = `${answer}! Nice!`;
+          win.hidden = false;
+          hud.textContent = `Unscramble the word · ${score}`;
+        } else {
+          hud.textContent = "Not quite — try again";
+          setTimeout(() => {
+            slots.forEach((t) => { if (t) t.used = false; });
+            slots = Array(answer.length).fill(null);
+            paint();
+            hud.textContent = `Unscramble the word · ${score}`;
+          }, 500);
+        }
+      }
+
+      document.getElementById("shuffle").addEventListener("click", () => {
+        const unused = tray.filter((t) => !t.used).map((t) => t.ch);
+        const shuffled = shuffle(unused);
+        let k = 0;
+        tray.forEach((t) => {
+          if (!t.used) t.ch = shuffled[k++];
+        });
+        paint();
+      });
+      document.getElementById("clear").addEventListener("click", () => {
+        slots.forEach((t) => { if (t) t.used = false; });
+        slots = Array(answer.length).fill(null);
+        paint();
+      });
+      document.getElementById("skip").addEventListener("click", start);
+      document.getElementById("again").addEventListener("click", start);
+      start();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paint Numbers</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(#fff6d8, #ffd6e8);
+        color: #2b2140;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 14px;
+      }
+      .hud { font-weight: 800; text-align: center; }
+      .palette { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+      .swatch {
+        width: 44px; height: 44px; border-radius: 50%;
+        border: 3px solid transparent; cursor: pointer; font-weight: 800; color: #fff;
+        text-shadow: 0 1px 0 rgba(0,0,0,.25);
+      }
+      .swatch.is-on { border-color: #2b2140; transform: scale(1.08); }
+      .grid {
+        width: min(360px, 92vw);
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 4px;
+        background: #fff;
+        padding: 8px;
+        border-radius: 18px;
+        box-shadow: 0 10px 0 rgba(80, 40, 60, 0.08);
+      }
+      .cell {
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 8px;
+        background: #f4f0ea;
+        font-weight: 800;
+        color: #6a6078;
+        cursor: pointer;
+      }
+      .wide {
+        border: 0; background: #2b2140; color: #fff; font: inherit; font-weight: 800;
+        border-radius: 999px; padding: 10px 16px; cursor: pointer;
+      }
+      .win {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        background: rgba(40, 20, 50, 0.35);
+      }
+      .win[hidden] { display: none; }
+      .panel { background: #fff; border-radius: 24px; padding: 24px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Paint by number · pick a color</div>
+    <div class="palette" id="palette"></div>
+    <div class="grid" id="grid"></div>
+    <button class="wide" id="next" type="button">New picture</button>
+    <div class="win" id="win" hidden>
+      <div class="panel">
+        <h1>Nice painting!</h1>
+        <button class="wide" id="again" type="button">Paint another</button>
+      </div>
+    </div>
+    <script>
+      const colors = [
+        { n: 1, c: "#e85d4c" },
+        { n: 2, c: "#f0a202" },
+        { n: 3, c: "#6ab04c" },
+        { n: 4, c: "#2f6bff" },
+        { n: 5, c: "#b83fce" },
+        { n: 6, c: "#5ec8e8" },
+      ];
+      const pictures = [
+        // simple house
+        [
+          0,0,4,4,0,0,
+          0,4,4,4,4,0,
+          2,2,2,2,2,2,
+          2,6,2,2,6,2,
+          2,6,2,2,6,2,
+          2,2,1,1,2,2,
+        ],
+        // fish
+        [
+          0,0,5,5,0,0,
+          0,5,5,5,5,0,
+          5,5,1,5,5,3,
+          5,5,5,5,5,3,
+          0,5,5,5,5,0,
+          0,0,5,5,0,0,
+        ],
+        // flower
+        [
+          0,5,5,5,5,0,
+          5,5,2,2,5,5,
+          5,2,2,2,2,5,
+          0,5,3,3,5,0,
+          0,0,3,3,0,0,
+          0,3,3,3,3,0,
+        ],
+        // boat
+        [
+          0,0,0,4,0,0,
+          0,0,4,4,0,0,
+          0,4,4,4,0,0,
+          6,6,6,6,6,6,
+          0,1,1,1,1,0,
+          0,0,1,1,0,0,
+        ],
+      ];
+      const palette = document.getElementById("palette");
+      const grid = document.getElementById("grid");
+      const hud = document.getElementById("hud");
+      const win = document.getElementById("win");
+      let chosen = 1;
+      let target = [];
+      let filled = [];
+
+      colors.forEach((col) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "swatch" + (col.n === 1 ? " is-on" : "");
+        btn.style.background = col.c;
+        btn.textContent = col.n;
+        btn.addEventListener("click", () => {
+          chosen = col.n;
+          palette.querySelectorAll(".swatch").forEach((el) => el.classList.remove("is-on"));
+          btn.classList.add("is-on");
+          hud.textContent = `Paint number ${chosen}`;
+        });
+        palette.appendChild(btn);
+      });
+
+      function start() {
+        win.hidden = true;
+        target = pictures[Math.floor(Math.random() * pictures.length)].slice();
+        filled = target.map((n) => (n === 0 ? 0 : null));
+        paint();
+        hud.textContent = `Paint number ${chosen}`;
+      }
+
+      function paint() {
+        grid.replaceChildren();
+        target.forEach((n, i) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cell";
+          if (n === 0) {
+            btn.style.background = "#fff";
+            btn.disabled = true;
+          } else if (filled[i] != null) {
+            btn.style.background = colors.find((c) => c.n === filled[i]).c;
+            btn.textContent = "";
+          } else {
+            btn.textContent = n;
+            btn.addEventListener("click", () => tap(i, n, btn));
+          }
+          grid.appendChild(btn);
+        });
+      }
+
+      function tap(i, n) {
+        if (chosen !== n) {
+          hud.textContent = `That spot is ${n}. Pick color ${n}.`;
+          return;
+        }
+        filled[i] = n;
+        paint();
+        if (filled.every((v, idx) => target[idx] === 0 || v === target[idx])) {
+          win.hidden = false;
+        }
+      }
+
+      document.getElementById("next").addEventListener("click", start);
+      document.getElementById("again").addEventListener("click", start);
+      start();
+    </script>
+  </body>
+</html>

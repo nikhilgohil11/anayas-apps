@@ -20,18 +20,7 @@ let category = "all";
 let finderOpen = false;
 let finderFocus = "search";
 let playedIds = loadPlayed();
-
-chips.innerHTML = CATEGORIES.map(
-  (cat) =>
-    `<button type="button" class="chip" data-category="${cat.id}" aria-pressed="false">${esc(cat.label)}</button>`
-).join("");
-
-footCats.innerHTML = CATEGORIES.filter((cat) => cat.id !== "all")
-  .map(
-    (cat) =>
-      `<button type="button" data-category="${cat.id}">${esc(cat.label)}</button>`
-  )
-  .join("");
+let tiltReady = false;
 
 searchInput.addEventListener("input", () => {
   query = searchInput.value;
@@ -99,8 +88,56 @@ frame.addEventListener("load", () => {
 
 window.addEventListener("hashchange", route);
 
-renderBoard();
-route();
+const touchDevice = navigator.maxTouchPoints > 0;
+const hasOrientation = typeof DeviceOrientationEvent !== "undefined";
+if (!touchDevice || !hasOrientation) {
+  startPortal(false);
+} else if (typeof DeviceOrientationEvent.requestPermission === "function") {
+  startPortal(true);
+} else {
+  let settled = false;
+  const finish = (ok) => {
+    if (settled) return;
+    settled = true;
+    window.removeEventListener("deviceorientation", onTiltEvent);
+    startPortal(ok);
+  };
+  const onTiltEvent = (event) => {
+    finish(typeof event.gamma === "number" && typeof event.beta === "number");
+  };
+  window.addEventListener("deviceorientation", onTiltEvent);
+  setTimeout(() => finish(false), 1000);
+}
+
+function startPortal(ok) {
+  tiltReady = ok;
+  renderCategories();
+  route();
+}
+
+function visibleGames() {
+  return GAMES.filter((game) => tiltReady || game.category !== "tilt");
+}
+
+function renderCategories() {
+  const games = visibleGames();
+  const cats = CATEGORIES.filter(
+    (cat) => cat.id === "all" || games.some((game) => game.category === cat.id)
+  );
+  chips.innerHTML = cats
+    .map(
+      (cat) =>
+        `<button type="button" class="chip" data-category="${cat.id}" aria-pressed="false">${esc(cat.label)}</button>`
+    )
+    .join("");
+  footCats.innerHTML = cats
+    .filter((cat) => cat.id !== "all")
+    .map(
+      (cat) =>
+        `<button type="button" data-category="${cat.id}">${esc(cat.label)}</button>`
+    )
+    .join("");
+}
 
 function onTileClick(event) {
   if (onBrandAction(event)) return;
@@ -186,7 +223,7 @@ function showGame(game) {
   frame.src = game.src;
   rememberPlayed(game.id);
   playerBrand.innerHTML = brandHTML(false);
-  rail.innerHTML = GAMES.filter((item) => item.id !== game.id)
+  rail.innerHTML = visibleGames().filter((item) => item.id !== game.id)
     .map((item) => tileHTML(item, { compact: true }))
     .join("");
 }
@@ -210,7 +247,7 @@ function renderBoard() {
 
 function filtered() {
   const q = query.trim().toLowerCase();
-  return GAMES.filter((game) => {
+  return visibleGames().filter((game) => {
     if (category !== "all" && game.category !== category) return false;
     if (!q) return true;
     const hay = `${game.title} ${game.category} ${game.tags.join(" ")}`.toLowerCase();
@@ -232,7 +269,7 @@ function brandHTML(heading) {
 }
 
 function gameById(id) {
-  return GAMES.find((game) => game.id === id);
+  return visibleGames().find((game) => game.id === id);
 }
 
 function categoryLabel(id) {
